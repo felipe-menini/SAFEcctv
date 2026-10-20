@@ -20,6 +20,9 @@ ARCHIVE.mkdir(exist_ok=True)
 SUPPLIERS = ROOT / 'proveedores'
 SUPPLIERS.mkdir(exist_ok=True)
 SUPPLIERS_FILE = SUPPLIERS / 'proveedores.json'
+CATALOGO = ROOT / 'catalogo'
+CATALOGO.mkdir(exist_ok=True)
+CATALOGO_FILE = CATALOGO / 'catalogo.json'
 HOST, PORT = '127.0.0.1', 8787
 HOST = os.environ.get('SAFE_HOST', HOST)
 PORT = int(os.environ.get('SAFE_PORT', str(PORT)))
@@ -57,6 +60,12 @@ class SafeHandler(SimpleHTTPRequestHandler):
                 return self.json_response({'suppliers': data if isinstance(data,list) else []})
             except (ValueError, OSError):
                 return self.json_response({'error': 'No se pudieron leer los proveedores'}, 500)
+        if path == '/api/catalogo':
+            try:
+                data = json.loads(CATALOGO_FILE.read_text(encoding='utf-8')) if CATALOGO_FILE.exists() else []
+                return self.json_response({'products': data if isinstance(data, list) else []})
+            except (ValueError, OSError):
+                return self.json_response({'error': 'No se pudo leer el catálogo'}, 500)
         if path == '/api/presupuestos':
             records = []
             for file in sorted(ARCHIVE.glob('SAFE-*.json')):
@@ -70,12 +79,12 @@ class SafeHandler(SimpleHTTPRequestHandler):
         if path.startswith('/api/'):
             return self.json_response({'error': 'Ruta desconocida'}, 404)
         # Bloquear exposición HTTP de archivos de cotizaciones y copias internas.
-        if unquote(path).lower().startswith(('/cotizaciones', '/proveedores')) or '/../' in unquote(path):
+        if unquote(path).lower().startswith(('/cotizaciones', '/proveedores', '/catalogo')) or '/../' in unquote(path):
             return self.json_response({'error': 'Ruta protegida'}, 403)
         return super().do_GET()
 
     def do_POST(self):
-        if urlsplit(self.path).path not in ('/api/guardar', '/api/eliminar', '/api/proveedores'):
+        if urlsplit(self.path).path not in ('/api/guardar', '/api/eliminar', '/api/proveedores', '/api/catalogo'):
             return self.json_response({'error': 'Ruta desconocida'}, 404)
         origin = self.headers.get('Origin', '')
         if origin and urlsplit(origin).netloc != self.headers.get('Host', '') and origin != f'http://{HOST}:{PORT}':
@@ -106,6 +115,39 @@ class SafeHandler(SimpleHTTPRequestHandler):
                 tmp.write_text(json.dumps(clean, indent=2, ensure_ascii=False), encoding='utf-8')
                 tmp.replace(SUPPLIERS_FILE)
                 return self.json_response({'ok':True, 'count':len(clean)})
+            if urlsplit(self.path).path == '/api/catalogo':
+                items = data.get('products')
+                if not isinstance(items, list) or len(items) > 5000:
+                    return self.json_response({'error': 'Catálogo inválido'}, 422)
+                clean = []
+                for item in items:
+                    if not isinstance(item, dict):
+                        return self.json_response({'error': 'Producto inválido'}, 422)
+                    name = str(item.get('name', '')).strip()[:180]
+                    if not name:
+                        return self.json_response({'error': 'Nombre de producto obligatorio'}, 422)
+                    image = str(item.get('image', ''))
+                    if len(image) > 1_500_000:
+                        return self.json_response({'error': 'Imagen demasiado grande'}, 422)
+                    try:
+                        cost = max(0.0, float(item.get('cost', 0) or 0))
+                    except (TypeError, ValueError):
+                        cost = 0.0
+                    clean.append({
+                        'id': str(item.get('id', ''))[:100],
+                        'name': name,
+                        'category': str(item.get('category', 'other'))[:30],
+                        'cost': cost,
+                        'currency': 'UYU' if item.get('currency') == 'UYU' else 'USD',
+                        'taxIncluded': bool(item.get('taxIncluded')),
+                        'description': str(item.get('description', ''))[:700],
+                        'supplierId': str(item.get('supplierId', ''))[:100],
+                        'image': image,
+                    })
+                tmp = CATALOGO_FILE.with_suffix('.json.tmp')
+                tmp.write_text(json.dumps(clean, indent=2, ensure_ascii=False), encoding='utf-8')
+                tmp.replace(CATALOGO_FILE)
+                return self.json_response({'ok': True, 'count': len(clean)})
             if urlsplit(self.path).path == '/api/eliminar':
                 number = str(data.get('number',''))
                 if not re.fullmatch(r'SAFE-[0-9]{1,8}', number):

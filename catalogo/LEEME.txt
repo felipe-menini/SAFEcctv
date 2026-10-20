@@ -1,0 +1,3 @@
+Directorio del catálogo compartido. El servidor local guarda aquí catalogo.json
+(con productos, precios e imágenes). Al clonar el repo y levantar Docker ya está todo.
+No compartir con clientes. Respaldo JSON incluye el catálogo del navegador.

@@ -1,0 +1,200 @@
+[
+  {
+    "id": "wifi-h1c",
+    "name": "EZVIZ H1C",
+    "category": "wifi",
+    "cost": 26,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "wifi-h6c",
+    "name": "EZVIZ H6C",
+    "category": "wifi",
+    "cost": 35,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "wifi-h3c",
+    "name": "EZVIZ H3C 3MP",
+    "category": "wifi",
+    "cost": 45,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "wifi-h8c",
+    "name": "EZVIZ H8C",
+    "category": "wifi",
+    "cost": 62,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "sd-64",
+    "name": "MicroSD 64 GB",
+    "category": "sd",
+    "cost": 12,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Tarjeta de memoria; verificar compatibilidad y tipo recomendado para grabación.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "sd-128",
+    "name": "MicroSD 128 GB",
+    "category": "sd",
+    "cost": 24,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Tarjeta de memoria; verificar compatibilidad y tipo recomendado para grabación.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "sd-256",
+    "name": "MicroSD 256 GB",
+    "category": "sd",
+    "cost": 43,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Tarjeta de memoria; verificar compatibilidad y tipo recomendado para grabación.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "analog-dahua",
+    "name": "Dahua analógico · DVR 4 canales",
+    "category": "analog",
+    "cost": 177,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "DVR 4 canales, 4 cajas estancas, fuente, balunes, disco 500 GB. Sin cable ni canalización. Confirmar cámaras incluidas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "analog-hilook",
+    "name": "HiLook analógico · DVR 4 canales",
+    "category": "analog",
+    "cost": 170,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "DVR 4 canales, 4 cajas estancas, fuente, balunes, disco 500 GB. Sin cable ni canalización. Confirmar cámaras incluidas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "analog-hilook-color",
+    "name": "HiLook ColorVu analógico · DVR 4 canales",
+    "category": "analog",
+    "cost": 179,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "DVR 4 canales, 4 cajas estancas, fuente, balunes, disco 500 GB. Sin cable ni canalización. Confirmar cámaras incluidas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "analog-hik-color",
+    "name": "Hikvision ColorVu analógico · DVR 4 canales",
+    "category": "analog",
+    "cost": 220,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "DVR 4 canales, 4 cajas estancas, fuente, balunes, disco 500 GB. Sin cable ni canalización. Confirmar cámaras incluidas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "ip-tiandy-color",
+    "name": "Tiandy IP Color · 4 cámaras + NVR",
+    "category": "ip",
+    "cost": 210,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "4 cámaras IP color, NVR, 4 cajas estancas, HDD 500 GB, 75 m de cable. Faltan canalización y fichas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "ip-tiandy",
+    "name": "Tiandy IP · 4 cámaras + NVR",
+    "category": "ip",
+    "cost": 190,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "4 cámaras IP, NVR, 4 cajas estancas, HDD 500 GB, 75 m de cable. Faltan canalización y fichas.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "cable-150",
+    "name": "Cable UTP Cat 5e · rollo 150 m",
+    "category": "cable",
+    "cost": 22,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Cable Cat 5e adicional: rollo de 150 metros.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "cable-305",
+    "name": "Cable UTP Cat 5e · rollo 305 m",
+    "category": "cable",
+    "cost": 46,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Cable Cat 5e adicional: rollo de 305 metros.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "rj45-100",
+    "name": "Conectores RJ45 Cat 5e · 100 unidades",
+    "category": "connector",
+    "cost": 10,
+    "currency": "USD",
+    "taxIncluded": false,
+    "description": "Paquete de 100 fichas RJ45 para cable categoría 5e.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "accesorio-enchufe",
+    "name": "Enchufe / toma de corriente",
+    "category": "accessory",
+    "cost": 90,
+    "currency": "UYU",
+    "taxIncluded": true,
+    "description": "Accesorio de alimentación. La instalación eléctrica adicional se presupuesta aparte.",
+    "supplierId": "",
+    "image": ""
+  },
+  {
+    "id": "accesorio-caja",
+    "name": "Caja estanca chica",
+    "category": "accessory",
+    "cost": 85,
+    "currency": "UYU",
+    "taxIncluded": true,
+    "description": "Caja estanca pequeña para resguardar conexiones.",
+    "supplierId": "",
+    "image": ""
+  }
+]

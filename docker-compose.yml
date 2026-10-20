@@ -6,4 +6,5 @@ services:
     volumes:
       - ./cotizaciones:/app/cotizaciones
       - ./proveedores:/app/proveedores
+      - ./catalogo:/app/catalogo
     restart: unless-stopped

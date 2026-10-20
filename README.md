@@ -83,7 +83,7 @@ El proyecto incluye `Dockerfile` y `docker-compose.yml` para levantar el mismo s
 1. Instalá [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/).
 2. Cloná o descargá el proyecto y abrí una terminal en la carpeta.
 3. Ejecutá `docker compose up -d`. La primera vez tarda unos minutos al descargar la imagen base.
-4. Abrí `http://localhost:8787/`. Ya estás en modo carpeta local: los PDF y JSON se guardan en `cotizaciones/` y los proveedores en `proveedores/proveedores.json`, directamente en tu disco.
+4. Abrí `http://localhost:8787/`. Ya estás en modo carpeta local: los PDF y JSON se guardan en `cotizaciones/`, los proveedores en `proveedores/proveedores.json` y el catálogo con imágenes en `catalogo/catalogo.json`, directamente en tu disco.
 5. Para detener: `docker compose down`. Los archivos quedan en la carpeta del proyecto; el contenedor se puede borrar y recrear sin perder nada.
 
 El puerto se publica solo en la máquina local (`127.0.0.1:8787`). Si querés usar la app desde otro equipo de la red, cambiá en `docker-compose.yml` la línea de puertos a `"8787:8787"`; el servidor valida el origen de cada escritura, pero en ese caso protegé el acceso con algo más (VPN, firewall por IP, etc.).
@@ -91,6 +91,7 @@ El puerto se publica solo en la máquina local (`127.0.0.1:8787`). Si querés us
 ## Guardado real en carpeta
 
 - **Guardar presupuesto:** añade o actualiza la cotización en el historial del navegador y, con el servidor local o una carpeta autorizada, en `cotizaciones/SAFE-0001-Cliente.json`.
+- **Catálogo de productos:** con el servidor local, el catálogo completo (incluidas las imágenes de los productos) se sincroniza con `catalogo/catalogo.json`. Al clonar el proyecto en otra PC y levantar el servidor o Docker, el catálogo con imágenes ya está disponible. El archivo viaja dentro del proyecto: se puede versionar en git para compartirlo con el equipo.
 - **Exportar PDF al cliente:** además de descargar el PDF, guarda `cotizaciones/SAFE-0001-Cliente-USD.pdf` (o `-UYU.pdf`) y actualiza el JSON de esa cotización.
 - **Recuperación:** al usar el servidor local, la lista de *Mis presupuestos* se reconstruye desde los JSON aunque limpies los datos del navegador. En modo carpeta seleccionada, el sistema recupera los JSON al elegir la carpeta.
 - **Importante:** el archivo **JSON contiene los costos internos, márgenes y observaciones privadas**. No se lo envíes al cliente; compartí únicamente el PDF.
