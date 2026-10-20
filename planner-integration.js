@@ -1,5 +1,5 @@
 /* SAFE CCTV editor integration: one plan per quote, carried in ordinary JSON backups. */
-(()=>{'use strict';const A=window.SAFE_APP,$=id=>document.getElementById(id);let api=null,loadedId=null,loadedPlan=null,mounted=false;
+(()=>{'use strict';const A=window.SAFE_APP,$=id=>document.getElementById(id);if(!A)return;let api=null,loadedId=null,loadedPlan=null,mounted=false;
 function label(){ $('plannerQuoteLabel').textContent=A.quote.number+' · '+(A.quote.clientName||'Cliente sin asignar') }
 function serial(value){return JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
 function mount(){const prelude='<script>window.__SAFE_EMBEDDED=true;window.__SAFE_QUOTE_ID='+serial(A.quote.id)+';window.__SAFE_INITIAL_PLAN='+serial(A.quote.cctvPlan||null)+';</script>';loadedId=A.quote.id;$('safePlannerFrame').srcdoc=window.SAFE_PLANNER_DOCUMENT.replace('<head>','<head>'+prelude);mounted=true}

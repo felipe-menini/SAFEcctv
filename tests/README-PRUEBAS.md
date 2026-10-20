@@ -1,3 +1,9 @@
+# Pruebas servidor y Docker
+
+Las pruebas nuevas y la ruta de ejecución están en [Despliegue Docker](../docs/DESPLIEGUE-DOCKER.md#actualizar-y-verificar). `test_server.py` usa datos temporales; `qa_docker.py` usa un proyecto Compose aislado y elimina únicamente su volumen. `qa_server.cjs` requiere un servidor fixture con clave de prueba generada vía SAFE_TEST_PASSWORD.
+
+## Pruebas previas del editor y módulos
+
 # QA automatizada — SAFE Security Manager v1.8
 
 ## Regresiones de CCTV y aplicación integrada

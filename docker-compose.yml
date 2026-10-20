@@ -2,9 +2,21 @@ services:
   safe:
     build: .
     ports:
-      - "127.0.0.1:8787:8787"
+      - "${SAFE_BIND_HOST:-127.0.0.1}:${SAFE_PUBLIC_PORT:-8787}:8787"
+    environment:
+      SAFE_ADMIN_PASSWORD: ${SAFE_ADMIN_PASSWORD:?Configure SAFE_ADMIN_PASSWORD en .env}
+      SAFE_CCTV_PASSWORD: ${SAFE_CCTV_PASSWORD:?Configure SAFE_CCTV_PASSWORD en .env}
+      SAFE_SECURE_COOKIE: ${SAFE_SECURE_COOKIE:-0}
     volumes:
-      - ./cotizaciones:/app/cotizaciones
-      - ./proveedores:/app/proveedores
-      - ./catalogo:/app/catalogo
+      - safe_data:/data
     restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  safe_data:

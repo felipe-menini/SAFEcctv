@@ -1,3 +1,11 @@
+# Datos y respaldos del servidor SAFE
+
+**Para la versión con login/Docker, siga [Despliegue Docker](DESPLIEGUE-DOCKER.md#dos-clases-de-respaldo).** Los datos e imágenes viven en el volumen /data/state; el JSON de la interfaz es comercial y NO incluye usuarios, planos autónomos ni PDFs archivados. El ZIP por CLI sí respalda todo SQLite y media.
+
+## Referencia histórica: modo local anterior al servidor
+
+Lo que sigue solo aplica a la versión offline/local anterior, no describe la persistencia del nuevo servidor.
+
 # Dónde se guardan los datos — SAFE Security Manager v1.9
 
 ## Forma recomendada de uso

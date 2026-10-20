@@ -1,6 +1,13 @@
 # SAFE Security Manager v1.9 — Cotizador, herramientas técnicas y proveedores
 
-Sistema local de presupuestos, relevamiento técnico, paquetes comerciales editables, estimación de grabación y gestión de proveedores para cámaras, redes e instalación. Funciona en Chrome/Edge, es editable, no requiere hosting ni librerías externas, y genera un PDF profesional en USD o UYU con logo SAFE Security. Conserva el catálogo, presupuestos de versiones anteriores, fichas técnicas, paquetes propios y proveedores, manteniendo los datos internos separados de lo que ve el cliente.
+Gestor de presupuestos, relevamiento, paquetes, grabación, proveedores y diseño CCTV. La modalidad servidor usa Python/SQLite, login por roles e imágenes privadas persistentes en Docker. También conserva la modalidad offline heredada al abrir index.html directamente, sin autenticación ni datos compartidos.
+
+## Servidor Docker con login y datos persistentes
+
+**La instalación actual es multiusuario:** siga [Despliegue Docker](docs/DESPLIEGUE-DOCKER.md) para clonar, configurar credenciales, migrar datos, arrancar, respaldar y restaurar. `fmenini` administra todo; `smenini` solo diseña CCTV. SQLite e imágenes viven en un volumen, no en el navegador ni en el código. Las contraseñas no se publican en el repositorio.
+
+> Las secciones históricas de almacenamiento local que siguen describen el uso offline/heredado; para el servidor prevalece la guía Docker. El servidor requiere Python 3.12 y Pillow (requirements.txt); el navegador sigue sin librerías externas.
+
 
 
 ## Novedades v1.9 — diseño y acceso a respaldos
