@@ -12,6 +12,7 @@ import re
 from urllib.parse import urlsplit
 import webbrowser
 from urllib.parse import unquote
+import os
 
 ROOT = Path(__file__).resolve().parent
 ARCHIVE = ROOT / 'cotizaciones'
@@ -20,6 +21,9 @@ SUPPLIERS = ROOT / 'proveedores'
 SUPPLIERS.mkdir(exist_ok=True)
 SUPPLIERS_FILE = SUPPLIERS / 'proveedores.json'
 HOST, PORT = '127.0.0.1', 8787
+HOST = os.environ.get('SAFE_HOST', HOST)
+PORT = int(os.environ.get('SAFE_PORT', str(PORT)))
+AUTO_OPEN = os.environ.get('SAFE_OPEN_BROWSER', '1') != '0'
 MAX_REQUEST = 12_000_000
 
 def safe_name(text: str, limit: int = 42) -> str:
@@ -74,7 +78,7 @@ class SafeHandler(SimpleHTTPRequestHandler):
         if urlsplit(self.path).path not in ('/api/guardar', '/api/eliminar', '/api/proveedores'):
             return self.json_response({'error': 'Ruta desconocida'}, 404)
         origin = self.headers.get('Origin', '')
-        if origin not in ('', f'http://{HOST}:{PORT}'):
+        if origin and urlsplit(origin).netloc != self.headers.get('Host', '') and origin != f'http://{HOST}:{PORT}':
             return self.json_response({'error': 'Origen no autorizado'}, 403)
         if self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
             return self.json_response({'error': 'Se esperaba JSON'}, 415)
@@ -158,7 +162,8 @@ if __name__ == '__main__':
             print('Abrí en el navegador:', address)
             print('Cotizaciones guardadas en:', ARCHIVE)
             print('Cerrá esta ventana para detener el servidor. Los archivos se conservan.')
-            webbrowser.open(address)
+            if AUTO_OPEN:
+                webbrowser.open(address)
             server.serve_forever()
     except OSError as exc:
         print('No se pudo iniciar el servidor local:', exc)

@@ -76,6 +76,18 @@ En el menú lateral, **Administración → Proveedores**:
 
 > Para iniciar en Linux/macOS, ejecutá `python3 servidor_safe.py` desde la carpeta del proyecto. El servidor usa solo la biblioteca estándar de Python 3 y escucha **exclusivamente en 127.0.0.1**, sin publicar cotizaciones en Internet.
 
+## Ejecutar con Docker (sin instalar Python)
+
+El proyecto incluye `Dockerfile` y `docker-compose.yml` para levantar el mismo servidor dentro de un contenedor. Sirve en una PC Windows con Docker Desktop o en Linux con Docker Engine.
+
+1. Instalá [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/).
+2. Cloná o descargá el proyecto y abrí una terminal en la carpeta.
+3. Ejecutá `docker compose up -d`. La primera vez tarda unos minutos al descargar la imagen base.
+4. Abrí `http://localhost:8787/`. Ya estás en modo carpeta local: los PDF y JSON se guardan en `cotizaciones/` y los proveedores en `proveedores/proveedores.json`, directamente en tu disco.
+5. Para detener: `docker compose down`. Los archivos quedan en la carpeta del proyecto; el contenedor se puede borrar y recrear sin perder nada.
+
+El puerto se publica solo en la máquina local (`127.0.0.1:8787`). Si querés usar la app desde otro equipo de la red, cambiá en `docker-compose.yml` la línea de puertos a `"8787:8787"`; el servidor valida el origen de cada escritura, pero en ese caso protegé el acceso con algo más (VPN, firewall por IP, etc.).
+
 ## Guardado real en carpeta
 
 - **Guardar presupuesto:** añade o actualiza la cotización en el historial del navegador y, con el servidor local o una carpeta autorizada, en `cotizaciones/SAFE-0001-Cliente.json`.
