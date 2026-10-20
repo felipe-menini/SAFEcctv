@@ -1,0 +1,47 @@
+@media screen{html[data-theme="dark"] button{background:#192535!important}
+html[data-theme="dark"] button:hover{background:#192535!important;border-color:#344a63!important}
+html[data-theme="dark"] .primary{color:#fff!important}
+html[data-theme="dark"] header{background:#192535!important}
+html[data-theme="dark"] .project span{color:#a9b9cd!important}
+html[data-theme="dark"] nav{background:#192535!important}
+html[data-theme="dark"] .tab{color:#a9b9cd!important}
+html[data-theme="dark"] .tab b{background:#192535!important}
+html[data-theme="dark"] .projectLabel{color:#a9b9cd!important}
+html[data-theme="dark"] .projectLabel i{color:#a9b9cd!important}
+html[data-theme="dark"] .left,html[data-theme="dark"] .right{background:#192535!important}
+html[data-theme="dark"] .eyebrow{color:#a9b9cd!important}
+html[data-theme="dark"] .tool small{color:#a9b9cd!important}
+html[data-theme="dark"] .tool.active{background:#192535!important;border:1px solid #344a63!important}
+html[data-theme="dark"] .sectionTitle span{color:#a9b9cd!important}
+html[data-theme="dark"] .cameraCard:hover{border-color:#344a63!important;background:#192535!important}
+html[data-theme="dark"] .cameraIcon{background:#192535!important}
+html[data-theme="dark"] .cameraCard small{color:#a9b9cd!important}
+html[data-theme="dark"] .cameraCard>span:last-child{color:#a9b9cd!important}
+html[data-theme="dark"] .tip{background:#192535!important;border:1px solid #344a63!important}
+html[data-theme="dark"] .tip>span{color:#a9b9cd!important}
+html[data-theme="dark"] .tip p{color:#a9b9cd!important}
+html[data-theme="dark"] .layers label{color:#a9b9cd!important}
+html[data-theme="dark"] .link{color:#a9b9cd!important}
+html[data-theme="dark"] .canvasTop{background:#192535!important}
+html[data-theme="dark"] .greenDot{background:#203148!important}
+html[data-theme="dark"] .drawing{background:#192535!important}
+html[data-theme="dark"] .compass{color:#a9b9cd!important}
+html[data-theme="dark"] .floating{background:#ffffffda!important;border:1px solid #344a63!important;color:#a9b9cd!important}
+html[data-theme="dark"] .zoom{background:#192535!important}
+html[data-theme="dark"] .scale{color:#a9b9cd!important}
+html[data-theme="dark"] footer{color:#a9b9cd!important}
+html[data-theme="dark"] .propTitle .cameraIcon{background:#192535!important}
+html[data-theme="dark"] .badge{color:#a9b9cd!important;background:#192535!important}
+html[data-theme="dark"] .field{color:#a9b9cd!important}
+html[data-theme="dark"] .field input,html[data-theme="dark"] .field select{background:#192535!important;outline-color:#344a63!important}
+html[data-theme="dark"] .danger{color:#ff9b9e!important}
+html[data-theme="dark"] .summary>div:not(.eyebrow){color:#a9b9cd!important}
+html[data-theme="dark"] .summary button{background:#192535!important;border-color:#344a63!important;color:#a9b9cd!important}
+html[data-theme="dark"] .disclaimer{color:#a9b9cd!important}
+html[data-theme="dark"] .quoteCard{background:#192535!important}
+html[data-theme="dark"] #toast{color:#fff!important}
+@media(max-width:1100px){}@media(max-width:800px){}html[data-theme="dark"] .reportSettings{background:#192535!important}
+html[data-theme="dark"] #reportContent{background:#192535!important}
+html[data-theme="dark"] .reportPlan{background:#192535!important}
+}
+@media screen{html[data-theme="dark"]{--ink:#d7e7dd;--muted:#a8bcb0;--green:#69bb97;--line:#34463d;--paper:#101b17}html[data-theme="dark"] .primary{background:#276f51!important;color:#fff!important}html[data-theme="dark"] .drawing{background:#14221c!important}html[data-theme="dark"] #scene [fill="white"]{fill:#24362d}html[data-theme="dark"] #scene [fill="#fffef9"]{fill:#26372e}html[data-theme="dark"] #scene [fill="#eaf0df88"]{fill:#263d2b88}html[data-theme="dark"] #canvas [fill="url(#grid)"]{opacity:.35}html[data-theme="dark"] #scene [stroke="#f6f8f2"]{stroke:#21362a}html[data-theme="dark"] #scene text{fill:#afc9b8}html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#14271d!important;color:#e1f0e7!important;border-color:#476553!important}html[data-theme="dark"] .summary .total strong{color:#d7e7dd!important}html[data-theme="dark"] .tool.active{background:#284934!important;border-color:#72b994!important}html[data-theme="dark"] .floating{background:#1b2b22ed!important;color:#bbcebf!important}html[data-theme="dark"] #reportContent{background:#1a2b21!important;color:#d7e7dd!important}}

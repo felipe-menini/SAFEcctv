@@ -1,0 +1,11 @@
+SAFE Security - Carpeta de cotizaciones
+
+En el modo local con Python 3, al guardar una cotizacion se genera un JSON editable.
+Al exportar su PDF, tambien se guarda una copia aqui.
+Los archivos JSON contienen costos internos y NO deben enviarse al cliente.
+Solo comparti el PDF.
+
+Inicia la aplicacion con INICIAR-COTIZADOR.bat (Windows) o con:
+    python servidor_safe.py
+
+No edites manualmente los JSON mientras el cotizador esta abierto.

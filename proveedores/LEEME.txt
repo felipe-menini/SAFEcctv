@@ -1,0 +1,2 @@
+Directorio privado. El iniciador local guarda aquí proveedores.json.
+No compartir con clientes. Respaldo JSON incluye este directorio.
