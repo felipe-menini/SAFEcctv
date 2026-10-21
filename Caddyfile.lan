@@ -1,0 +1,13 @@
+{
+	admin off
+	skip_install_trust
+	auto_https disable_redirects
+	https_port 8443
+    # IP-literal clients omit SNI; Docker sees its private bridge IP.
+    default_sni {$SAFE_LAN_IP}
+}
+
+https://{$SAFE_LAN_IP} {
+	tls internal
+	reverse_proxy safe:8787
+}

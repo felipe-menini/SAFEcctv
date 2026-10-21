@@ -1,0 +1,33 @@
+# Compose >= 2.24.4 (!override). Include AFTER any host-specific override.
+services:
+  safe:
+    ports: !override
+      - "127.0.0.1:8787:8787"
+    environment:
+      SAFE_SECURE_COOKIE: "1"
+  safe-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    environment:
+      SAFE_LAN_IP: ${SAFE_LAN_IP:?Set SAFE_LAN_IP}
+    ports:
+      - "${SAFE_LAN_IP:?Set SAFE_LAN_IP}:443:8443"
+    volumes:
+      - safe_tls_data:/data
+      - safe_tls_config:/config
+    user: "10001:10001"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    restart: unless-stopped
+    depends_on:
+      safe:
+        condition: service_healthy
+    # Docker Snap: retain default AppArmor/seccomp; no privileged/cap_add.
+    # Do not add no-new-privileges here on affected Snap hosts (LP1908448).
+volumes:
+  safe_tls_data:
+  safe_tls_config:
