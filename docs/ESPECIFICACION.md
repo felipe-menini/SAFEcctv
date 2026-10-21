@@ -22,6 +22,8 @@ La ficha del sitio y las fichas por cámara son parte del borrador y del presupu
 
 Cinco paquetes predeterminados editables y paquetes personalizados. Cada entrada lleva nombre, tipo, descripción y lista de productos con cantidad. Las modificaciones de predefinidos se guardan como sustituciones en `state.packages` con el mismo identificador; la acción **Restaurar original** elimina esa sustitución. El guardado de plantillas NO altera cotizaciones existentes y la aplicación del paquete pregunta antes de reemplazar artículos.
 
+Alta y baja de paquetes: **+ Nuevo paquete** abre el mismo editor para armar una plantilla desde cero (nombre, tipo, descripción y artículos del catálogo, sin depender del presupuesto actual), con un máximo de 60 paquetes personalizados; el alta **desde los equipos del presupuesto** se conserva. **Eliminar** está disponible en todos los paquetes: los personalizados se quitan del estado y los predeterminados se registran como baja `{id,deleted:true}` en `state.packages`, porque la plantilla vive en el código. Mientras exista alguna baja, el encabezado muestra **Restaurar predeterminados** para volver al listado de fábrica sin tocar los paquetes propios.
+
 ### Grabación y discos
 
 - **Modo objetivo:** `days` («Quiero X días») → cantidad de GB necesaria; `capacity` («Tengo un disco») → días teóricos.

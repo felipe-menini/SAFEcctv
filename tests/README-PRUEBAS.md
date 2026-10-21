@@ -14,10 +14,12 @@ Requieren Node.js, el paquete `playwright` y Chrome (o `SAFE_CHROMIUM` con la ru
 node tests/build-planner.cjs --check
 node tests/qa_cctv.cjs
 node tests/qa_cctv_integration.cjs
+node tests/qa_packages.cjs
 ```
 
 - `qa_cctv.cjs`: 16 casos en editor independiente e integrado: doble clic, cotas reales, rectángulos, polígonos sin cruces, validación, deshacer, calibración, persistencia, imagen/opacidad 0%, teclado, Escape, navegación con Espacio y aislamiento de importación asíncrona entre proyectos.
 - `qa_cctv_integration.cjs`: aplicación SAFE completa con iframe real, guardado del borrador y round trip de respaldo/importación con geometría e imagen a 0%. Reproduce los controles de paneles escritorio/móvil y proveedores de `qa_v19.py` mediante Node Playwright.
+- `qa_packages.cjs`: paquetes comerciales: alta desde cero con el editor (`+ Nuevo paquete`), nombre obligatorio, alta desde los equipos del presupuesto, edición y **Restaurar original** de un predeterminado, baja de paquetes propios y predeterminados (con confirmación y cancelación), **Restaurar predeterminados** y aplicación del paquete al presupuesto. Cubre además los casos de paquetes de `qa_v18.py` (5 predeterminados, 2 paneles plegables y sustituciones en `state.packages`).
 - Los fixtures usan almacenamiento aislado en memoria y bloquean las solicitudes HTTP externas. Se valida el contenido real del Blob de respaldo; **no certifican la descarga física**, la selección de carpeta ni la apertura mediante BAT. Chromium canceló la descarga física de Blob en este entorno.
 - Los scripts Python originales se conservan sin modificaciones. No se ejecutaron aquí porque los intérpretes disponibles no tienen el módulo Python `playwright`; los escenarios v1.9 indicados se verificaron con el harness Node.
 
