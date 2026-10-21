@@ -3,4 +3,4 @@ Directorio del catálogo compartido. El servidor local guarda aquí catalogo.jso
 No compartir con clientes. Respaldo JSON incluye el catálogo del navegador.
 Productos TY: importados de la planilla Tiandy del cliente (precios USD SIN IVA,
 imagen de la planilla; los AGOTADO no se importan). Fusiona por id en el servidor.
-Productos de importadores (prefijos of-/ec-/fv-): importados de la planilla Mio.xlsx. Precios USD SIN IVA, imagen de la ficha del proveedor y etiqueta [Importador: X].
+Productos de importadores (prefijos of-/ec-/fv-): importados de la planilla Mio.xlsx. Precios USD SIN IVA, imagen del proveedor (logo del importador) y etiqueta [Importador: X].

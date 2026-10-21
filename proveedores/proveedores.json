@@ -23,6 +23,14 @@
       "notes": "Importador/Reseller. Precios de lista sin IVA (planilla del cliente).",
       "name": "Fivisa",
       "updatedAt": "2026-10-21T00:00:00.000Z"
+    },
+    {
+      "id": "okcomputers",
+      "website": "",
+      "brands": "",
+      "notes": "Importador/Reseller. Sin productos cargados aún.",
+      "name": "OkComputers",
+      "updatedAt": "2026-10-21T00:00:00.000Z"
     }
   ]
 }
