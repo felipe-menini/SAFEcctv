@@ -41,7 +41,7 @@ function safeSupplierUrl(raw){
  catch{return ''}
 }
 function cleanSupplier(s){return {id:String(s.id||makeId()).slice(0,100),name:String(s.name||'').trim().slice(0,120),website:safeSupplierUrl(s.website),contact:String(s.contact||'').trim().slice(0,120),phone:String(s.phone||'').trim().slice(0,75),email:String(s.email||'').trim().slice(0,120),address:String(s.address||'').trim().slice(0,200),brands:String(s.brands||'').trim().slice(0,200),notes:String(s.notes||'').trim().slice(0,1200),updatedAt:String(s.updatedAt||new Date().toISOString()).slice(0,40)}}
-const cleanProduct=p=>({id:String(p.id||makeId()),name:String(p.name||'Producto sin nombre').slice(0,180),category:CATEGORY_LABELS[p.category]?p.category:'other',cost:Math.max(0,num(p.cost)),currency:p.currency==='UYU'?'UYU':'USD',taxIncluded:Boolean(p.taxIncluded),image:String(p.image||'').slice(0,1500000),description:String(p.description||'').slice(0,700),...(Number.isFinite(p.salePrice)?{salePrice:p.salePrice}:{}),supplierId:String(p.supplierId||'').slice(0,100)});
+const cleanProduct=p=>({id:String(p.id||makeId()),name:String(p.name||'Producto sin nombre').slice(0,180),brand:String(p.brand||'').trim().slice(0,60),model:String(p.model||'').trim().slice(0,90),code:String(p.code||'').trim().slice(0,60),category:CATEGORY_LABELS[p.category]?p.category:'other',cost:Math.max(0,num(p.cost)),currency:p.currency==='UYU'?'UYU':'USD',taxIncluded:Boolean(p.taxIncluded),image:String(p.image||'').slice(0,1500000),description:String(p.description||'').slice(0,700),...(Number.isFinite(p.salePrice)?{salePrice:p.salePrice}:{}),supplierId:String(p.supplierId||'').slice(0,100)});
 function migrateQuote(q){if(!q||typeof q!=='object')return createQuote();if(q.installMode){return {...createQuote(),...q,helperSaleEach:('helperSaleEach' in q)?Math.max(0,num(q.helperSaleEach)):55/(1+num(state.settings.saleTaxRate)/100),helperAutoSaleEnabled:('helperAutoSaleEnabled' in q)?Boolean(q.helperAutoSaleEnabled):false,installTasks:Array.isArray(q.installTasks)?q.installTasks:[]};}const legacyInstall=Math.max(0,num(q.laborHours)*num(q.laborRate)+num(q.helperQty)*num(q.helperDays)*num(q.helperSellDay)+num(q.transportSell)+num(q.perDiemSell));return {...createQuote(),...q,installMode:'fixed',installDifficulty:'normal',installFixed:Number(Math.max(0,legacyInstall-num(q.transportSell)-num(q.perDiemSell)).toFixed(2)),helperPayEach:num(q.helperDays)*num(q.helperCostDay),helperSaleEach:55/(1+num(state.settings.saleTaxRate)/100),helperAutoSaleEnabled:false,installTasks:[]};}
 let state;
 try{const loaded=window.__SAFE_BOOT?.workspace||JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');state={settings:{...initialSettings,...(loaded?.settings||{}),taxMode:'iva'},catalog:Array.isArray(loaded?.catalog)&&(!window.__SAFE_BOOT||window.__SAFE_BOOT.revision>0||window.__SAFE_BOOT.role!=='admin')?loaded.catalog.map(cleanProduct):deep(initialCatalog),saved:Array.isArray(loaded?.saved)?loaded.saved:[],packages:Array.isArray(loaded?.packages)?loaded.packages:[],suppliers:Array.isArray(loaded?.suppliers)?loaded.suppliers.map(cleanSupplier):[]};}catch(e){state={settings:deep(initialSettings),catalog:deep(initialCatalog),saved:[],packages:[],suppliers:[]};}
@@ -165,9 +165,322 @@ function totals(q=quote){
  return{goodsSale,goodsCost,installSale,installation,otherSell,servicesSale,preDiscount,discount:discountFinal,discountFinal,beforeDiscount,goodsFinal,servicesFinal,goodsVat,serviceVat,subtotal,vat,customerTotal,helperCost,servicesCost,costs,profit,margin,items};
 }
 function fillQuoteForm(){updateExchangeUI();const names=['clientName','clientPhone','clientAddress','issueDate','validDays','installMode','installDifficulty','installWifiRate','installAnalogRate','installIpRate','installRecorderRate','analogCamerasPerKit','installPercent','installFixed','helperQty','helperPayEach','helperSaleEach','transportCost','transportSell','perDiemCost','perDiemSell','otherCost','otherSell','warrantyReserve','overhead','discountType','discountValue','paymentTerms','leadTime','scopeIncluded','scopeExcluded','warrantyText','internalNotes'];for(const name of names){if($(name))$(name).value=['installWifiRate','installAnalogRate','installIpRate','installRecorderRate','installFixed','helperSaleEach','transportSell','perDiemSell','otherSell'].includes(name)?gross(quote[name]).toFixed(2):(name==='discountValue'&&quote.discountType==='amount'?gross(quote[name]).toFixed(2):(quote[name]??''))}$('quoteIdChip').textContent=quote.number;renderInstallTasks();document.querySelectorAll('.collapsible-panel').forEach(p=>{p.classList.remove('module-dirty');const label=p.querySelector('.module-apply-status');if(label)label.textContent='Los cambios se reflejan en el resumen en tiempo real.'});refreshAll();}
-function renderPicker(){const filter=$('categoryFilter').value,term=$('productSearch').value.toLocaleLowerCase('es-UY').trim();let selected=state.catalog.filter(p=>(!filter||p.category===filter)&&(!term||[p.name,p.description,CATEGORY_LABELS[p.category]].join(' ').toLocaleLowerCase('es-UY').includes(term)));$('productPicker').innerHTML=selected.length?selected.map(p=>{const net=nativeNetUSD(p);const suggested=net===null?'Consultar dólar venta':money(gross(Number.isFinite(p.salePrice)?(p.currency==='UYU'?p.salePrice/num(quote.fxRate):p.salePrice):suggestSale(net)));return `<button class="product-card" data-add-product="${esc(p.id)}" title="${esc(p.description)}">${p.image?`<img class="picker-thumb" src="${esc(p.image)}" alt="">`:''}<div class="product-info"><div class="product-title">${esc(p.name)}</div><div class="product-sub">${esc(CATEGORY_LABELS[p.category])} · PRECIO DE VENTA</div><span class="product-price">${esc(suggested)}</span></div><span class="product-add">+</span></button>`}).join(''):'<div class="empty-state" style="grid-column:1/-1">No hay productos con ese filtro.</div>'}
-function renderItems(){const items=quote.items||[];$('itemCount').textContent=items.length+' ítem'+(items.length===1?'':'s');$('itemsEmpty').style.display=items.length?'none':'block';$('quoteItems').innerHTML=items.map((x,index)=>`<tr data-index="${index}"><td><div class="item-name" title="${esc(x.description)}">${esc(x.name)}</div><div class="item-detail">${esc(x.description).slice(0,105)}${(x.description||'').length>105?'…':''}</div>${x.sourceCurrency==='UYU'?``:''}</td><td><input aria-label="Cantidad ${esc(x.name)}" data-line-field="quantity" data-idx="${index}" class="qty-field" type="number" min="0.01" step="0.01" value="${num(x.quantity)}"></td><td><input aria-label="Costo final en USD ${esc(x.name)}" data-line-field="cost" data-idx="${index}" type="number" min="0" step="0.01" ${x.sourceCurrency==='UYU'?'readonly title="Calculado desde UYU usando la cotización"':''} value="${purchaseGross(x.cost).toFixed(2)}"></td><td><input aria-label="Precio final ${esc(x.name)}" data-line-field="sale" data-idx="${index}" type="number" min="0" step="0.01" value="${gross(x.sale).toFixed(2)}"></td><td class="item-total" data-total-for="${index}">${moneyShort(gross(num(x.quantity)*num(x.sale)))}</td><td><button title="Eliminar ítem" aria-label="Eliminar ${esc(x.name)}" class="delete-row" data-delete-line="${index}">×</button></td></tr>`).join('');}
-function addProduct(id){const product=state.catalog.find(p=>p.id===id);if(!product)return;const net=nativeNetUSD(product);if(net===null){toast('Para agregar un material cotizado en pesos, consultá primero el dólar venta o ingresá la cotización manual.',true);$('currencyBox').scrollIntoView({behavior:'smooth',block:'center'});return}let existing=quote.items.find(x=>x.productId===id&&num(x.sourceCost||x.cost)===num(product.cost));if(existing)existing.quantity=num(existing.quantity)+1;else quote.items.push({id:makeId(),productId:id,name:product.name,description:product.description,category:product.category,quantity:1,cost:net,sourceCost:product.cost,sourceCurrency:product.currency||'USD',sourceTaxIncluded:Boolean(product.taxIncluded),autoSale:true,sale:Number((Number.isFinite(product.salePrice)?(product.currency==='UYU'?product.salePrice/num(quote.fxRate):product.salePrice):suggestSale(net)).toFixed(5)),autoSale:!Number.isFinite(product.salePrice)});renderItems();refreshAll();queueDraft();toast('Se agregó: '+product.name)}
+/* ---------- Cotizador · catálogo: búsqueda, filtros, favoritos y panel de seleccionados ---------- */
+const BRAND_LABELS={EZVIZ:'EZVIZ',TIANDY:'Tiandy',HILOOK:'HiLook',HIKVISION:'Hikvision',DAHUA:'Dahua',INTELBRAS:'Intelbras',MERCUSYS:'Mercusys','TP-LINK':'TP-Link',UNIVIEW:'Uniview',IMOU:'Imou',XION:'Xion',SAFIRE:'Safire',REOLINK:'Reolink',H3C:'H3C',ANNKE:'Annke',ZKTECO:'ZKTeco'};
+const NAME_ACRONYMS=new Set(['IP','NVR','DVR','POE','POE+','UTP','RJ45','HDD','SSD','H265','H264','ONVIF','PTZ','IR','LED','USB','HDMI','VGA','WIFI','WI-FI','GB','TB','MP','CMOS','CAT5E','CAT6','FTP','AC','DC','4G','5G','HD','FHD','2K','4K','AI','SMD','AK2','IPC','POE+']);
+const GENERIC_FIRST=/^(kit|kits|switch|switches|cable|cables|ducto|ductos|antena|antenas|microsd|memoria|memorias|conector|conectores|caja|cajas|enchufe|enchufes|extensor|extensores|adaptador|adaptadores|fuente|fuentes|disco|discos|soporte|soportes|camara|cámaras|camaras|router|patch|balun|balún|pila|pilas|tornillo|tornillos|gabinete|rack|monitor|mouse|teclado|etiqueta|etiquetas|modulo|módulo)$/i;
+const FAV_KEY='safe.catalogFavorites',RECENT_KEY='safe.catalogRecent';
+const pickerUI={quick:'all',suggestFor:''};
+const escapeRe=s=>String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function smartCase(raw){
+ const name=String(raw||'').trim();
+ if(!name||/[a-záéíóúüñ]/.test(name))return name;
+ let first=true;
+ return name.split(/(\s+|·)/).map(part=>{
+  if(!part||/^\s+$/.test(part)||part==='·')return part;
+  const suffix=(part.match(/[.,;:]+$/)||[''])[0],core=part.slice(0,part.length-suffix.length),up=core.toUpperCase();
+  if(!core)return part;
+  if(BRAND_LABELS[up]||NAME_ACRONYMS.has(up)||/\d/.test(core))return core+suffix;
+  const lower=core.toLowerCase(),out=first?lower.charAt(0).toUpperCase()+lower.slice(1):lower;
+  first=false;return out+suffix;
+ }).join('');
+}
+function displayName(itemOrProduct){return smartCase(itemOrProduct&&itemOrProduct.name)}
+function brandOf(p){
+ const explicit=String(p&&p.brand||'').trim();if(explicit)return explicit;
+ const name=String(p&&p.name||'').trim();if(!name)return '';
+ const words=name.toUpperCase().replace(/[^A-Z0-9+.\- ]+/g,' ').split(/\s+/);
+ const hit=words.find(w=>BRAND_LABELS[w]);if(hit)return BRAND_LABELS[hit];
+ const first=name.split(/\s+/)[0]||'';
+ if(first&&first.length>=3&&!GENERIC_FIRST.test(first)&&/^[A-Z][A-Za-z0-9.&-]*$/.test(first))return first;
+ return '';
+}
+function modelOf(p){
+ const explicit=String(p&&p.model||'').trim();if(explicit)return explicit;
+ const name=displayName(p),brand=brandOf(p);
+ if(!name||!brand)return name;
+ const out=name.replace(new RegExp('(^|[\\s·/-])'+escapeRe(brand)+'(?=$|[\\s·/-])','i'),' ').replace(/^[\s·/,-]+/,'').replace(/\s{2,}/g,' ').trim();
+ return out||name;
+}
+function equivKey(p){
+ const brand=brandOf(p)||String(p&&p.name||'').trim().split(/\s+/)[0]||'';
+ if(!brand||GENERIC_FIRST.test(brand))return '';
+ const model=modelOf(p).split(/[\s·/-]+/).filter(Boolean)[0]||'';
+ if(!model||GENERIC_FIRST.test(model))return '';
+ return (brand+' '+model).toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,48);
+}
+function equivGroups(){const groups=new Map();for(const p of(state.catalog||[])){const key=equivKey(p);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(p)}return groups}
+const readIdList=key=>{try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v.filter(x=>typeof x==='string'):[]}catch(e){return[]}};
+const writeIdList=(key,list)=>{try{localStorage.setItem(key,JSON.stringify(list.slice(0,80)))}catch(e){}};
+const favoriteIds=()=>readIdList(FAV_KEY);
+const isFavorite=id=>favoriteIds().includes(id);
+function toggleFavorite(id){
+ const list=favoriteIds(),has=list.includes(id);
+ writeIdList(FAV_KEY,has?list.filter(x=>x!==id):[id,...list]);
+ renderPicker();
+ toast(has?'Producto quitado de favoritos.':'Producto agregado a favoritos.');
+}
+const recentIds=()=>readIdList(RECENT_KEY);
+function rememberRecent(id){writeIdList(RECENT_KEY,[id,...recentIds().filter(x=>x!==id)])}
+function saleOf(p){
+ const net=nativeNetUSD(p);
+ if(net===null)return null;
+ return gross(Number.isFinite(p.salePrice)?(p.currency==='UYU'?p.salePrice/num(quote.fxRate):p.salePrice):suggestSale(net));
+}
+function filterState(){
+ return{term:String($('productSearch').value||'').trim().toLocaleLowerCase('es-UY'),category:$('categoryFilter').value,brand:$('brandFilter').value,supplier:$('supplierFilter').value,min:num($('filterPriceMin').value),max:num($('filterPriceMax').value),image:$('filterWithImage').checked,supplierOnly:$('filterWithSupplier').checked,recorder:$('filterOnlyRecorder').checked,quick:pickerUI.quick};
+}
+let pickerOptionsSig='';
+function refreshPickerFilterOptions(){
+ const brands=[...new Set((state.catalog||[]).map(brandOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+ const suppliers=(state.suppliers||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'es'));
+ const currentBrand=$('brandFilter').value,currentSupplier=$('supplierFilter').value;
+ $('brandFilter').innerHTML='<option value="">Todas</option>'+brands.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+ $('supplierFilter').innerHTML='<option value="">Todos</option>'+suppliers.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')+'<option value="__none">Sin proveedor</option>';
+ $('brandFilter').value=brands.includes(currentBrand)?currentBrand:'';
+ $('supplierFilter').value=(currentSupplier==='__none'||suppliers.some(s=>s.id===currentSupplier))?currentSupplier:'';
+ pickerOptionsSig=(state.catalog||[]).length+'|'+suppliers.map(s=>s.id+s.name).join(',')+'|'+brands.join(',');
+}
+function ensurePickerOptions(){
+ const brands=(state.catalog||[]).map(brandOf).filter(Boolean);
+ const sig=(state.catalog||[]).length+'|'+(state.suppliers||[]).map(s=>s.id+s.name).join(',')+'|'+[...new Set(brands)].sort().join(',');
+ if(sig!==pickerOptionsSig)refreshPickerFilterOptions();
+}
+function matchProduct(p,f,favSet,recentSet){
+ if(f.category&&p.category!==f.category)return false;
+ if(f.brand&&brandOf(p)!==f.brand)return false;
+ if(f.supplier==='__none'){if(p.supplierId)return false}
+ else if(f.supplier&&p.supplierId!==f.supplier)return false;
+ if(f.image&&!p.image)return false;
+ if(f.supplierOnly&&!p.supplierId)return false;
+ if(f.quick==='favorites'&&!favSet.has(p.id))return false;
+ if(f.quick==='recent'&&!recentSet.has(p.id))return false;
+ if(f.recorder){
+  const head=(p.name||'')+' '+String(p.description||'').split('.').slice(0,1).join('.');
+  if(!/(NVR|DVR|grabador|kit)/i.test(head))return false;
+ }
+ const sale=saleOf(p);
+ if(sale!==null&&f.min>0&&sale<f.min)return false;
+ if(sale!==null&&f.max>0&&sale>f.max)return false;
+ if(f.term){
+  const hay=[p.name,p.brand,p.model,p.code,p.description,CATEGORY_LABELS[p.category],brandOf(p),modelOf(p),supplierNameOf(p)].join(' ').toLocaleLowerCase('es-UY');
+  if(!hay.includes(f.term))return false;
+ }
+ return true;
+}
+function supplierNameOf(p){const s=p&&p.supplierId?supplierById(p.supplierId):null;return s?s.name:''}
+function supplierNameForItem(x){const p=x&&x.productId?state.catalog.find(c=>c.id===x.productId):null;return supplierNameOf(p)}
+function productCard(p,equivalents){
+ const sale=saleOf(p),brand=brandOf(p),model=modelOf(p),name=displayName(p),fav=isFavorite(p.id);
+ const lines=(quote.items||[]).filter(x=>x.productId===p.id),qty=lines.reduce((a,x)=>a+num(x.quantity),0);
+ const supplier=supplierNameOf(p),group=equivKey(p);
+ return `<article class="product-card${qty?' in-quote':''}" data-add-product="${esc(p.id)}" title="${esc(p.description||name)}">
+  <div class="product-media">${p.image?`<img class="picker-thumb" src="${esc(p.image)}" alt="${esc(name)}">`:`<span class="picker-thumb picker-thumb-empty" aria-hidden="true">◫</span>`}
+   <button type="button" class="fav-toggle${fav?' is-fav':''}" data-favorite="${esc(p.id)}" aria-pressed="${fav}" aria-label="${fav?'Quitar de favoritos':'Agregar a favoritos'}: ${esc(name)}">★</button>
+   ${qty?'<span class="product-in-quote">En el presupuesto</span>':''}
+  </div>
+  <div class="product-info">
+   <div class="product-chips">${brand?`<span class="product-chip brand">${esc(brand)}</span>`:''}${model&&model!==name?`<span class="product-chip model">${esc(model)}</span>`:''}<span class="product-chip">${esc(CATEGORY_LABELS[p.category]||'Material')}</span></div>
+   <div class="product-title">${esc(name)}</div>
+   <p class="product-desc">${esc(p.description)||'Sin características cargadas.'}</p>
+   <div class="product-meta">${p.code?`<span>Cód. ${esc(p.code)}</span>`:''}<span class="product-supplier">${supplier?esc(supplier):'Sin proveedor'}</span></div>
+  </div>
+  <div class="product-foot">
+   <div class="product-price-block"><span class="product-price-label">Venta</span><span class="product-price" title="${sale===null?'Costo en otra moneda: definí el precio de venta al agregarlo':'Precio de venta final'}">${sale===null?'A consultar':esc(money(sale))}</span></div>
+   ${qty?`<div class="qty-stepper" role="group" aria-label="Cantidad de ${esc(name)}"><button type="button" class="qty-btn" data-card-step="-1" data-product="${esc(p.id)}" aria-label="Restar uno a ${esc(name)}">−</button><span class="qty-value">${num(qty).toLocaleString('es-UY',{maximumFractionDigits:2})}</span><button type="button" class="qty-btn" data-card-step="1" data-product="${esc(p.id)}" aria-label="Sumar uno a ${esc(name)}">+</button></div>`:`<button type="button" class="btn btn-primary btn-sm product-add-btn" data-add-product="${esc(p.id)}">+ Agregar</button>`}
+  </div>
+  ${equivalents.length>1&&group?`<button type="button" class="product-compare" data-compare="${esc(group)}">≡ ${equivalents.length} equivalentes · comparar proveedores</button>`:''}
+ </article>`;
+}
+function renderPicker(){
+ ensurePickerOptions();
+ const f=filterState();
+ if(f.quick==='kits'){renderKits();renderFilterChrome(f);return}
+ const favorites=new Set(favoriteIds()),recents=new Set(recentIds()),groups=equivGroups();
+ const list=(state.catalog||[]).filter(p=>matchProduct(p,f,favorites,recents));
+ $('productPicker').innerHTML=list.length?list.map(p=>productCard(p,groups.get(equivKey(p))||[])).join(''):'<div class="empty-state" style="grid-column:1/-1">No hay productos que coincidan con los filtros.<br><button type="button" class="btn btn-ghost btn-sm" data-clear-filters>Limpiar filtros</button></div>';
+ $('pickerCount').textContent=list.length+' producto'+(list.length===1?'':'s')+(f.quick==='favorites'?' en favoritos':f.quick==='recent'?' recientes':'');
+ renderFilterChrome(f);
+}
+function renderKits(){
+ const api=window.SafeTechnical,packs=api&&typeof api.packages==='function'?api.packages():[];
+ if(!packs.length){$('productPicker').innerHTML='<div class="empty-state" style="grid-column:1/-1">No hay paquetes comerciales disponibles. Creá uno en «Paquetes comerciales».</div>';$('pickerCount').textContent='0 paquetes';return}
+ $('productPicker').innerHTML=packs.map(pack=>{
+  const items=(pack.products||[]).length,price=num(pack.price);
+  return `<article class="product-card kit-card">
+   <div class="product-media kit-media" aria-hidden="true">▣</div>
+   <div class="product-info"><div class="product-chips"><span class="product-chip brand">Paquete</span><span class="product-chip">${items} artículo${items===1?'':'s'}</span></div><div class="product-title">${esc(pack.name||'Paquete')}</div><p class="product-desc">${esc(pack.desc||'')||'Sin descripción cargada.'}</p></div>
+   <div class="product-foot"><div class="product-price-block"><span class="product-price-label">${price>0?'Paquete':'Sin precio'}</span><span class="product-price">${price>0?esc(money(price)):'—'}</span></div><button type="button" class="btn btn-primary btn-sm product-add-btn" data-package-add="${esc(pack.id)}">+ Agregar paquete</button></div>
+  </article>`;
+ }).join('');
+ $('pickerCount').textContent=packs.length+' paquete'+(packs.length===1?'':'s');
+}
+function renderFilterChrome(f){
+ const active=[f.term,f.category,f.brand,f.supplier,f.min>0?'1':'',f.max>0?'1':'',f.image?'1':'',f.supplierOnly?'1':'',f.recorder?'1':'',f.quick!=='all'?'1':''].filter(Boolean).length;
+ $('clearFilters').hidden=!active;
+ $('pickerChips').querySelectorAll('[data-picker-quick]').forEach(b=>b.classList.toggle('is-active',b.dataset.pickerQuick===f.quick));
+}
+function clearPickerFilters(){
+ pickerUI.quick='all';
+ $('productSearch').value='';$('categoryFilter').value='';$('brandFilter').value='';$('supplierFilter').value='';
+ $('filterPriceMin').value='';$('filterPriceMax').value='';
+ $('filterWithImage').checked=false;$('filterWithSupplier').checked=false;$('filterOnlyRecorder').checked=false;
+ renderPicker();
+}
+const SUGGEST_MAP={wifi:['sd','accessory'],camara:['cable','connector','accessory','sd'],ip:['cable','connector','sd'],analog:['cable','connector','accessory']};
+function suggestionBase(){
+ if(pickerUI.suggestFor){const p=state.catalog.find(c=>c.id===pickerUI.suggestFor);if(p&&SUGGEST_MAP[p.category]&&(quote.items||[]).some(x=>x.productId===p.id))return p}
+ const items=quote.items||[];
+ for(let i=items.length-1;i>=0;i--){const p=state.catalog.find(c=>c.id===items[i].productId);if(p&&SUGGEST_MAP[p.category])return p}
+ return null;
+}
+function suggestionsFor(base){
+ if(!base)return[];
+ const targets=SUGGEST_MAP[base.category];if(!targets||!targets.length)return[];
+ const inQuote=new Set((quote.items||[]).map(x=>x.productId));
+ const sameSupplier=p=>p.supplierId&&p.supplierId===base.supplierId;
+ return (state.catalog||[]).filter(p=>targets.includes(p.category)&&!inQuote.has(p.id)).sort((a,b)=>Number(sameSupplier(b))-Number(sameSupplier(a))).slice(0,4);
+}
+function renderSuggestions(){
+ const box=$('selectionSuggestions');if(!box)return;
+ const base=suggestionBase();
+ const items=suggestionsFor(base);
+ if(!base||!items.length){box.hidden=true;box.innerHTML='';return}
+ box.hidden=false;
+ box.innerHTML=`<div class="suggest-head"><strong>Recomendados para ${esc(displayName(base))}</strong><button type="button" class="btn btn-ghost btn-sm" data-suggest-close aria-label="Ocultar sugerencias">×</button></div><div class="suggest-chips">${items.map(p=>`<button type="button" class="suggest-chip" data-suggest-add="${esc(p.id)}"><span aria-hidden="true">+</span>${esc(displayName(p))}<b>${saleOf(p)===null?'—':esc(money(saleOf(p)))}</b></button>`).join('')}</div><p class="suggest-note">Se agregan solo si los tocás; nunca se suman automáticamente.</p>`;
+}
+function quoteCheckList(){
+ const items=quote.items||[],cameras=items.filter(x=>x.category==='wifi'||x.category==='camara');
+ const kitsAnalog=items.filter(x=>x.category==='analog'),kitsIp=items.filter(x=>x.category==='ip'),storage=items.filter(x=>x.category==='sd');
+ const recorders=items.filter(x=>x.category==='ip'&&/(NVR|DVR)/i.test(x.name));
+ const wiring=items.some(x=>x.category==='cable'||x.category==='connector');
+ const out=[];
+ if(kitsAnalog.length&&(kitsIp.length||cameras.length))out.push(['warn','Estás combinando un kit analógico (DVR) con equipos IP. Son tecnologías distintas: confirmá si el proyecto necesita dos grabadores o si conviene unificar.']);
+ if(cameras.length&&!storage.length&&!kitsIp.length&&!kitsAnalog.length&&!recorders.length)out.push(['warn','Hay cámaras sin grabador (NVR/DVR) ni memoria microSD: no habrá registro de imágenes.']);
+ if(storage.length&&!cameras.length&&!kitsIp.length&&!kitsAnalog.length)out.push(['info','Agregaste memorias microSD sin cámaras: revisá si corresponden a este presupuesto.']);
+ if(wiring&&!cameras.length&&!kitsIp.length&&!kitsAnalog.length)out.push(['info','Hay cableado o conectores sin cámaras ni kits que los utilicen.']);
+ return out;
+}
+function renderSelectionChecks(){
+ const box=$('selectionChecks');if(!box)return;
+ const checks=quoteCheckList();
+ box.hidden=!checks.length;
+ box.innerHTML=checks.map(([level,text])=>`<div class="selection-check ${level}"><span class="selection-check-icon" aria-hidden="true">${level==='warn'?'!':'i'}</span><p>${esc(text)}</p></div>`).join('');
+}
+function renderSelectionSummary(){
+ if(!$('selectionSale'))return;
+ const t=totals();
+ $('selectionSale').textContent=money(t.goodsFinal);
+ $('selectionCost').textContent=money(purchaseGross(t.goodsCost));
+ $('selectionTotal').textContent=money(t.customerTotal);
+ renderSelectionChecks();renderSuggestions();
+}
+function updatePickerAfterAdd(productId){
+ const grid=$('productPicker'),top=grid?grid.scrollTop:0;
+ pickerUI.suggestFor=productId||'';
+ renderPicker();
+ if(grid)grid.scrollTop=top;
+}
+function stepProductQty(productId,delta){
+ const line=(quote.items||[]).find(x=>x.productId===productId);
+ if(!line){if(delta>0)addProduct(productId);return}
+ const next=Math.round((num(line.quantity)+delta)*100)/100;
+ if(next<=0)quote.items=quote.items.filter(x=>x!==line);
+ else line.quantity=next;
+ renderItems();refreshAll();queueDraft();
+}
+function changeLineQty(index,delta){
+ const line=quote.items[index];if(!line)return;
+ const next=Math.round((num(line.quantity)+delta)*100)/100;
+ if(next<=0)quote.items.splice(index,1);
+ else line.quantity=next;
+ renderItems();refreshAll();queueDraft();
+}
+function compareModal(key){
+ const list=(state.catalog||[]).filter(p=>equivKey(p)===key);
+ if(list.length<2){toast('No hay productos equivalentes para comparar.',true);return}
+ const rows=list.map(p=>({p,sale:saleOf(p),supplier:supplierNameOf(p)})).sort((a,b)=>(a.sale===null?Infinity:a.sale)-(b.sale===null?Infinity:b.sale));
+ const best=rows.find(r=>r.sale!==null);
+ modal('Productos equivalentes',`<p class="modal-description">Mismo modelo detectado en el catálogo. Compará el proveedor y el precio de venta; podés agregar cualquiera al presupuesto.</p><div class="item-table-wrap"><table class="item-table compare-table"><thead><tr><th>Producto</th><th>Proveedor</th><th>Venta</th><th>Diferencia</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(displayName(r.p))}${r.p.code?`<small class="item-detail">Cód. ${esc(r.p.code)}</small>`:''}</td><td>${esc(r.supplier||'Sin proveedor')}</td><td>${r.sale===null?'—':esc(money(r.sale))}</td><td>${r.sale===null||!best?'—':Math.abs(r.sale-best.sale)<.005?'Más barato':(r.sale>best.sale?'+'+esc(money(r.sale-best.sale)):'Más barato')}</td><td><button type="button" class="btn btn-light btn-sm" data-compare-add="${esc(r.p.id)}">Agregar</button></td></tr>`).join('')}</tbody></table></div>`,()=>closeModal(),'Cerrar');
+}
+function shoppingListModal(){
+ const items=quote.items||[];
+ if(!items.length){toast('Primero agregá materiales al presupuesto.',true);return}
+ const groups=new Map();
+ for(const x of items){
+  const product=x.productId?state.catalog.find(c=>c.id===x.productId):null;
+  const supplier=product?supplierById(product.supplierId):null,key=supplier?supplier.id:'';
+  if(!groups.has(key))groups.set(key,{name:supplier?supplier.name:'Sin proveedor',rows:[]});
+  groups.get(key).rows.push({name:displayName(x),qty:num(x.quantity),unit:purchaseGross(x.cost)});
+ }
+ const blocks=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+ let grand=0;
+ const body=blocks.map(group=>{
+  const subtotal=group.rows.reduce((a,r)=>a+r.qty*r.unit,0);grand+=subtotal;
+  return `<tr class="shopping-group"><td colspan="4">${esc(group.name)}</td></tr>${group.rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${num(r.qty).toLocaleString('es-UY',{maximumFractionDigits:2})}</td><td>${esc(money(r.unit))}</td><td class="shopping-amount">${esc(money(r.qty*r.unit))}</td></tr>`).join('')}<tr class="shopping-subtotal"><td colspan="3">Subtotal ${esc(group.name)}</td><td class="shopping-amount">${esc(money(subtotal))}</td></tr>`;
+ }).join('');
+ modal('Lista de compras por proveedor',`<p class="modal-description">Agrupada por proveedor y calculada con los <b>costos internos</b> (con IVA de compra). No incluye precios de venta ni instalación: es un documento interno de compra.</p><div class="item-table-wrap"><table class="item-table shopping-table"><thead><tr><th>Material</th><th>Cant.</th><th>Costo unit.</th><th>Subtotal</th></tr></thead><tbody>${body}<tr class="shopping-total"><td colspan="3">Total estimado de compra</td><td class="shopping-amount">${esc(money(grand))}</td></tr></tbody></table></div>`,()=>closeModal(),'Cerrar');
+}
+function onPickerClick(e){
+ const favorite=e.target.closest('[data-favorite]');
+ if(favorite){e.preventDefault();e.stopPropagation();toggleFavorite(favorite.dataset.favorite);return}
+ const step=e.target.closest('[data-card-step]');
+ if(step){e.preventDefault();e.stopPropagation();stepProductQty(step.dataset.product,Number(step.dataset.cardStep));return}
+ const compare=e.target.closest('[data-compare]');
+ if(compare){e.preventDefault();e.stopPropagation();compareModal(compare.dataset.compare);return}
+ const pack=e.target.closest('[data-package-add]');
+ if(pack){
+  e.preventDefault();e.stopPropagation();
+  const api=window.SafeTechnical;
+  if(api&&typeof api.applyPackage==='function')api.applyPackage(pack.dataset.packageAdd);
+  else toast('Los paquetes todavía no están disponibles. Probá de nuevo en un instante.',true);
+  return;
+ }
+ if(e.target.closest('[data-clear-filters]')){e.preventDefault();clearPickerFilters();return}
+ const add=e.target.closest('[data-add-product]');
+ if(add)addProduct(add.dataset.addProduct);
+}
+function bindPicker(){
+ $('productSearch').addEventListener('input',()=>{pickerUI.quick='all';renderPicker()});
+ $('categoryFilter').addEventListener('change',renderPicker);
+ $('brandFilter').addEventListener('change',renderPicker);
+ $('supplierFilter').addEventListener('change',renderPicker);
+ $('filterPriceMin').addEventListener('input',renderPicker);
+ $('filterPriceMax').addEventListener('input',renderPicker);
+ ['filterWithImage','filterWithSupplier','filterOnlyRecorder'].forEach(id=>$(id).addEventListener('change',renderPicker));
+ $('toggleAdvancedFilters').addEventListener('click',()=>{
+  const box=$('advancedFilters');box.hidden=!box.hidden;
+  $('toggleAdvancedFilters').setAttribute('aria-expanded',String(!box.hidden));
+ });
+ $('clearFilters').addEventListener('click',clearPickerFilters);
+ $('pickerChips').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-picker-quick]');if(!chip)return;
+  pickerUI.quick=chip.dataset.pickerQuick;renderPicker();
+ });
+ $('productPicker').addEventListener('click',onPickerClick);
+ $('selectionShoppingList').addEventListener('click',shoppingListModal);
+ $('selectionSuggestions').addEventListener('click',e=>{
+  const add=e.target.closest('[data-suggest-add]');
+  if(add){e.preventDefault();addProduct(add.dataset.suggestAdd);return}
+  if(e.target.closest('[data-suggest-close]')){pickerUI.suggestFor='';renderSuggestions()}
+ });
+ document.addEventListener('click',e=>{
+  const add=e.target.closest('[data-compare-add]');
+  if(!add)return;
+  e.preventDefault();addProduct(add.dataset.compareAdd);closeModal();
+ });
+}
+function renderItems(){
+ const items=quote.items||[];
+ $('itemCount').textContent=items.length+' ítem'+(items.length===1?'':'s');
+ $('itemsEmpty').style.display=items.length?'none':'block';
+ $('quoteItems').innerHTML=items.map((x,index)=>{
+  const supplier=supplierNameForItem(x),meta=[x.productId?'':'línea manual',supplier].filter(Boolean).join(' · ');
+  return `<tr data-index="${index}"><td><div class="item-name" title="${esc(x.description)}">${esc(displayName(x))}</div><div class="item-detail">${esc((x.description||'').slice(0,90))}${(x.description||'').length>90?'…':''}</div><div class="item-internal"><label><span>Interno</span><input aria-label="Costo final en USD ${esc(x.name)}" data-line-field="cost" data-idx="${index}" type="number" min="0" step="0.01" ${x.sourceCurrency==='UYU'?'readonly title="Calculado desde UYU usando la cotización"':''} value="${purchaseGross(x.cost).toFixed(2)}"></label><label><span>Venta</span><input aria-label="Precio final ${esc(x.name)}" data-line-field="sale" data-idx="${index}" type="number" min="0" step="0.01" value="${gross(x.sale).toFixed(2)}"></label>${meta?`<span class="item-meta">${esc(meta)}</span>`:''}</div></td><td><div class="qty-stepper"><button type="button" class="qty-btn" data-line-step="-1" data-idx="${index}" aria-label="Restar uno a ${esc(x.name)}">−</button><input aria-label="Cantidad ${esc(x.name)}" data-line-field="quantity" data-idx="${index}" class="qty-field" type="number" min="0.01" step="0.01" value="${num(x.quantity)}"><button type="button" class="qty-btn" data-line-step="1" data-idx="${index}" aria-label="Sumar uno a ${esc(x.name)}">+</button></div></td><td class="item-total" data-total-for="${index}">${moneyShort(gross(num(x.quantity)*num(x.sale)))}</td><td><button title="Eliminar ítem" aria-label="Eliminar ${esc(x.name)}" class="delete-row" data-delete-line="${index}">×</button></td></tr>`;
+ }).join('');
+ renderSelectionSummary();
+}
+function addProduct(id){const product=state.catalog.find(p=>p.id===id);if(!product)return;const net=nativeNetUSD(product);if(net===null){toast('Para agregar un material cotizado en pesos, consultá primero el dólar venta o ingresá la cotización manual.',true);$('currencyBox').scrollIntoView({behavior:'smooth',block:'center'});return}let existing=quote.items.find(x=>x.productId===id&&num(x.sourceCost||x.cost)===num(product.cost));if(existing)existing.quantity=num(existing.quantity)+1;else quote.items.push({id:makeId(),productId:id,name:product.name,description:product.description,category:product.category,quantity:1,cost:net,sourceCost:product.cost,sourceCurrency:product.currency||'USD',sourceTaxIncluded:Boolean(product.taxIncluded),autoSale:true,sale:Number((Number.isFinite(product.salePrice)?(product.currency==='UYU'?product.salePrice/num(quote.fxRate):product.salePrice):suggestSale(net)).toFixed(5)),autoSale:!Number.isFinite(product.salePrice)});rememberRecent(id);updatePickerAfterAdd(id);renderItems();refreshAll();queueDraft();toast('Se agregó: '+product.name)}
 const INSTALL_TASK_PRESETS={canal:{name:'Canalización adicional',qty:10,price:2.5,cost:0,unit:'m'},cable:{name:'Tendido adicional de cable',qty:10,price:1.5,cost:0,unit:'m'},altura:{name:'Montaje en altura / acceso difícil',qty:1,price:35,cost:0,unit:'servicio'},red:{name:'Punto de red adicional',qty:1,price:25,cost:0,unit:'punto'}};
 function appendInstallTask(preset=''){const t=INSTALL_TASK_PRESETS[preset]||{name:'Trabajo adicional',qty:1,price:15,cost:0,unit:'servicio'};quote.installTasks.push({id:makeId(),...t});renderInstallTasks();refreshAll();queueDraft();}
 function renderInstallTasks(){const list=$('installTasksList');const tasks=quote.installTasks||[];list.innerHTML=tasks.length?tasks.map((task,i)=>`<div class="install-task-row"><label class="field"><span>Trabajo</span><input aria-label="Trabajo ${i+1}" data-install-field="name" data-install-index="${i}" value="${esc(task.name)}" maxlength="100"/></label><label class="field"><span>Unidad</span><input aria-label="Unidad ${i+1}" data-install-field="unit" data-install-index="${i}" value="${esc(task.unit||'servicio')}" maxlength="18"/></label><label class="field"><span>Cantidad</span><input aria-label="Cantidad trabajo ${i+1}" data-install-field="qty" data-install-index="${i}" type="number" min="0" step="0.5" value="${num(task.qty)}"/></label><label class="field"><span>Venta unit. USD</span><input aria-label="Venta trabajo ${i+1}" data-install-field="price" data-install-index="${i}" type="number" min="0" step="0.5" value="${gross(task.price).toFixed(2)}"/></label><label class="field"><span>Costo unit. USD</span><input aria-label="Costo trabajo ${i+1}" data-install-field="cost" data-install-index="${i}" type="number" min="0" step="0.5" value="${num(task.cost)}"/></label><button class="delete-row" type="button" title="Eliminar trabajo" data-remove-install="${i}">×</button></div>`).join(''):'<div class="install-tasks-empty">Sin tareas adicionales. Agregalas solo si esta instalación las necesita.</div>'}
@@ -188,7 +501,7 @@ function refreshAll(){const t=totals();const m=moneyShort,count=quote.items.redu
  $('profitExplanation').textContent='Remanente antes de remunerar tu propio tiempo, impuestos y costos no cargados';
  $('profitBar').style.width=Math.min(100,Math.max(0,t.margin))+'%';$('profitBar').style.background=t.profit>=0?'var(--green)':'var(--red)';$('profitPercent').textContent=percent(t.margin);
  $('profitCosts').innerHTML=[['Equipos y materiales',purchaseGross(t.goodsCost)],['Pago a ayudantes',t.helperCost],['Transporte y viáticos',num(quote.transportCost)+num(quote.perDiemCost)],['Costos de trabajos extra',t.installation.extraCost],['Otros costos + previsiones',num(quote.otherCost)+num(quote.warrantyReserve)+num(quote.overhead)],['Total de costos conocidos',t.costs]].map(([label,value])=>`<div class="summary-row"><span>${esc(label)}</span><strong>${m(value)}</strong></div>`).join('');
- refreshInstallation(t);document.querySelectorAll('[data-total-for]').forEach(e=>{const x=quote.items[Number(e.dataset.totalFor)];if(x)e.textContent=m(gross(num(x.quantity)*num(x.sale)))});$('savedCounter').textContent=state.saved.length;
+ refreshInstallation(t);document.querySelectorAll('[data-total-for]').forEach(e=>{const x=quote.items[Number(e.dataset.totalFor)];if(x)e.textContent=m(gross(num(x.quantity)*num(x.sale)))});$('savedCounter').textContent=state.saved.length;renderSelectionSummary();
 }
 function saveQuote(){if(window.SafeAccess&&!SafeAccess.can('presupuestos')){toast('Se requiere permiso de presupuestos para archivar.',true);return false;}if(!quote.clientName.trim()){toast('Ingresá el nombre del cliente antes de guardar.',true);$('clientName').focus();return false}quote.updatedAt=new Date().toISOString();const index=state.saved.findIndex(q=>q.id===quote.id);if(index>=0)state.saved[index]=deep(quote);else state.saved.unshift(deep(quote));if(persist()){draftSave();refreshAll();void saveArchive(quote);toast('Presupuesto '+quote.number+' guardado.');return true}return false;}
 async function newQuote(ask=true){if(ask&&(quote.items.length||quote.clientName||quote.cctvPlan)&&!await safeConfirm('¿Crear un nuevo presupuesto? El borrador actual queda en el historial solo si ya lo guardaste.'))return;const lastFx={fxRate:quote.fxRate,fxUpdatedAt:quote.fxUpdatedAt,fxSource:quote.fxSource,fxManual:quote.fxManual};quote={...createQuote(seqNum()),...lastFx};fillQuoteForm();draftSave();showView('cotizador');toast('Nuevo presupuesto listo.');}
@@ -297,7 +610,7 @@ function archiveCatalog(){
 }
 function modal(title,content,handler,label='Guardar'){modalHandler=handler;$('modalTitle').textContent=title;$('modalContent').innerHTML=content;$('modalConfirm').textContent=label;$('modalBackdrop').hidden=false;modalOpen=true;const first=$('modalContent').querySelector('input,select,textarea');if(first)setTimeout(()=>first.focus(),20)}
 function closeModal(){$('modalBackdrop').hidden=true;modalOpen=false;modalHandler=()=>{}}
-function productModal(id=null){const old=id?state.catalog.find(p=>p.id===id):null;modal(old?'Editar producto':'Nuevo producto',`<div class="field-grid"><label class="field field-wide"><span>Nombre del producto *</span><input id="modalProductName" maxlength="160" value="${esc(old?.name||'')}"></label><label class="field"><span>Categoría</span><select id="modalCategory">${Object.entries(CATEGORY_LABELS).map(([k,label])=>`<option value="${k}" ${old?.category===k?'selected':''}>${esc(label)}</option>`).join('')}</select></label><label class="field"><span>Moneda de compra</span><select id="modalCurrency"><option value="USD" ${old?.currency!=='UYU'?'selected':''}>USD</option><option value="UYU" ${old?.currency==='UYU'?'selected':''}>UYU</option></select></label><label class="field"><span>Costo unitario del proveedor</span><input id="modalCost" type="number" min="0" step="0.01" value="${old?.cost??0}"></label><label class="field"><span>IVA en ese costo</span><select id="modalTaxIncluded"><option value="false" ${!old?.taxIncluded?'selected':''}>Precio + IVA</option><option value="true" ${old?.taxIncluded?'selected':''}>IVA incluido</option></select></label><label class="field field-wide"><span>Proveedor (opcional, solo uso interno)</span><select id="modalSupplier"><option value="">Sin proveedor asignado</option>${state.suppliers.map(s=>`<option value="${esc(s.id)}" ${old?.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label class="field field-wide"><span>Incluye / faltantes / observaciones</span><textarea id="modalDescription" rows="4">${esc(old?.description||'')}</textarea></label><label class="field field-wide"><span>Imagen del producto (opcional)</span><div class="product-image-row"><img id="modalImagePreview" class="modal-image-preview" alt="" ${old?.image?`src="${esc(old.image)}"`:'hidden'}><div class="product-image-actions"><input type="file" id="modalProductImage" accept="image/*"><button type="button" class="btn btn-outline btn-sm" id="modalImageClear" ${old?.image?'':'hidden'}>Quitar imagen</button></div></div><input type="hidden" id="modalImageData" value="${esc(old?.image||'')}"></label></div>`,()=>{const name=$('modalProductName').value.trim();if(!name){toast('Ingresá un nombre de producto.',true);return}const p=cleanProduct({id:id||makeId(),name,category:$('modalCategory').value,cost:$('modalCost').value,currency:$('modalCurrency').value,taxIncluded:$('modalTaxIncluded').value==='true',supplierId:$('modalSupplier').value,description:$('modalDescription').value,image:$('modalImageData').value});if(id)state.catalog[state.catalog.findIndex(x=>x.id===id)]=p;else state.catalog.push(p);persist();archiveCatalog();renderCatalog();renderPicker();closeModal();toast('Catálogo actualizado.')});
+function productModal(id=null){const old=id?state.catalog.find(p=>p.id===id):null;modal(old?'Editar producto':'Nuevo producto',`<div class="field-grid"><label class="field field-wide"><span>Nombre del producto *</span><input id="modalProductName" maxlength="160" value="${esc(old?.name||'')}"></label><label class="field"><span>Marca</span><input id="modalProductBrand" maxlength="60" value="${esc(old?.brand||'')}" placeholder="Ej.: Tiandy"/></label><label class="field"><span>Modelo</span><input id="modalProductModel" maxlength="90" value="${esc(old?.model||'')}" placeholder="Ej.: TC-C321N"/></label><label class="field"><span>Código / SKU (opcional)</span><input id="modalProductCode" maxlength="60" value="${esc(old?.code||'')}" placeholder="Se usa para buscar"/></label><label class="field"><span>Categoría</span><select id="modalCategory">${Object.entries(CATEGORY_LABELS).map(([k,label])=>`<option value="${k}" ${old?.category===k?'selected':''}>${esc(label)}</option>`).join('')}</select></label><label class="field"><span>Moneda de compra</span><select id="modalCurrency"><option value="USD" ${old?.currency!=='UYU'?'selected':''}>USD</option><option value="UYU" ${old?.currency==='UYU'?'selected':''}>UYU</option></select></label><label class="field"><span>Costo unitario del proveedor</span><input id="modalCost" type="number" min="0" step="0.01" value="${old?.cost??0}"></label><label class="field"><span>IVA en ese costo</span><select id="modalTaxIncluded"><option value="false" ${!old?.taxIncluded?'selected':''}>Precio + IVA</option><option value="true" ${old?.taxIncluded?'selected':''}>IVA incluido</option></select></label><label class="field field-wide"><span>Proveedor (opcional, solo uso interno)</span><select id="modalSupplier"><option value="">Sin proveedor asignado</option>${state.suppliers.map(s=>`<option value="${esc(s.id)}" ${old?.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label class="field field-wide"><span>Incluye / faltantes / observaciones</span><textarea id="modalDescription" rows="4">${esc(old?.description||'')}</textarea></label><label class="field field-wide"><span>Imagen del producto (opcional)</span><div class="product-image-row"><img id="modalImagePreview" class="modal-image-preview" alt="" ${old?.image?`src="${esc(old.image)}"`:'hidden'}><div class="product-image-actions"><input type="file" id="modalProductImage" accept="image/*"><button type="button" class="btn btn-outline btn-sm" id="modalImageClear" ${old?.image?'':'hidden'}>Quitar imagen</button></div></div><input type="hidden" id="modalImageData" value="${esc(old?.image||'')}"></label></div>`,()=>{const name=$('modalProductName').value.trim();if(!name){toast('Ingresá un nombre de producto.',true);return}const p=cleanProduct({id:id||makeId(),name,brand:$('modalProductBrand').value,model:$('modalProductModel').value,code:$('modalProductCode').value,category:$('modalCategory').value,cost:$('modalCost').value,currency:$('modalCurrency').value,taxIncluded:$('modalTaxIncluded').value==='true',supplierId:$('modalSupplier').value,description:$('modalDescription').value,image:$('modalImageData').value});if(id)state.catalog[state.catalog.findIndex(x=>x.id===id)]=p;else state.catalog.push(p);persist();archiveCatalog();renderCatalog();renderPicker();closeModal();toast('Catálogo actualizado.')});
 $('modalProductImage').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(file.size>8*1024*1024){toast('La imagen debe pesar menos de 8 MB.',true);e.target.value='';return}try{const img=await normalizeProductImage(await fileToDataURL(file));$('modalImageData').value=img;$('modalImagePreview').src=img;$('modalImagePreview').hidden=false;$('modalImageClear').hidden=false}catch{toast('No se pudo leer la imagen.',true)}e.target.value=''});$('modalImageClear').onclick=()=>{$('modalImageData').value='';$('modalImagePreview').removeAttribute('src');$('modalImagePreview').hidden=true;$('modalImageClear').hidden=true};}
 function customItemModal(){modal('Agregar material o servicio',`<p class="modal-description">Sumá cualquier material no incluido en la lista: canaletas, caños, accesorios, ficha individual, etc. Ingresá costos y precios finales; el sistema calcula el IVA de los equipos para el PDF.</p><div class="field-grid"><label class="field field-wide"><span>Descripción *</span><input id="customName" placeholder="Ej.: Caja estanca adicional"></label><label class="field"><span>Cantidad</span><input id="customQty" type="number" value="1" min="0.01" step="0.01"></label><label class="field"><span>Costo unitario USD</span><input id="customCost" type="number" value="0" min="0" step="0.01"></label><label class="field"><span>Venta unitaria USD</span><input id="customSale" type="number" value="0" min="0" step="0.01"></label><label class="field field-wide"><span>Notas / detalle</span><input id="customDetails" placeholder="Ej.: Canaleta exterior y accesorios"></label></div>`,()=>{const name=$('customName').value.trim(),quantity=num($('customQty').value);if(!name||quantity<=0){toast('Ingresá descripción y cantidad válida.',true);return}quote.items.push({id:makeId(),productId:'',name,description:$('customDetails').value,category:'other',quantity,cost:Math.max(0,netFromPurchaseGross($('customCost').value)),sale:Math.max(0,netFromGross($('customSale').value))});renderItems();refreshAll();queueDraft();closeModal();toast('Ítem personalizado agregado.')});}
 function fillSettings(){for(const name of ['companyName','companyPhone','companyEmail','companyWeb','companyAddress','defaultMargin','saleTaxRate','serviceTaxRate','purchaseTaxRate','taxMode','currencyDecimals'])if($(name))$(name).value=state.settings[name]??'';$('settingLogoPreview').src=state.settings.logoData||'assets/logo-safe-security.png'}
@@ -375,7 +688,7 @@ async function repriceItems(){if(!quote.items.length){toast('Primero agregá alg
 function validatePdf(q){if(!String(q.clientName||'').trim()){toast('Ingresá el nombre del cliente antes de exportar PDF.',true);if(view==='cotizador')$('clientName').focus();return false}const t=totals(q);const tooLow=belowCostItems(q);if(tooLow.length){toast('No se puede exportar: '+tooLow.length+' producto(s) tiene(n) precio de venta igual o inferior al costo del proveedor. Usá Recalcular precios de venta.',true);return false}if(!q.items.length&&!(q.installTasks||[]).length&&t.otherSell===0){toast('Agregá algún producto o trabajo para cotizar.',true);return false}return true;}
 async function exportPdf(q=quote,preview=false){if(!validatePdf(q))return;const currency=q.pdfCurrency||'USD';const requiresFX=currency==='UYU'||(q.items||[]).some(x=>x.sourceCurrency==='UYU');if(requiresFX){const got=await fetchRate(q,{quiet:true});if(!got){if(!q.fxManual||fxLocalDay(q.fxUpdatedAt)!==todayUYU()){toast('No hay cotización vigente: consultá dólar venta o confirmá una cotización manual DE HOY. No se permite reutilizar una tasa anterior.',true);return}if(!await safeConfirm('No se pudo consultar el dólar venta BROU. ¿Continuar usando la cotización MANUAL '+uyumoney(q.fxRate)+'? El PDF lo indicará expresamente.'))return;}}if(!validatePdf(q))return;try{let planJpeg='';if(q.attachPlanSchematic){planJpeg=await window.SafePlanner?.schematicJpeg?.(q.id)||'';if(!planJpeg)toast('No se pudo adjuntar el esquema: abrí el plano de esta cotización en Plano CCTV e intentá de nuevo.',true)}const b=await window.SafePDF.makePdf({quote:deep(q),settings:deep(state.settings),totals:totals(q),currency,rate:num(q.fxRate),fxDate:q.fxUpdatedAt,fxSource:q.fxSource,fxManual:!!q.fxManual,planJpeg,taxDisplay:q.pdfTaxDisplay==='total'?'total':'breakdown'});if(!preview&&(!window.SafeAccess||SafeAccess.can('presupuestos'))){const current=deep(q);current.updatedAt=new Date().toISOString();const at=state.saved.findIndex(x=>x.id===current.id);if(at>=0)state.saved[at]=current;else state.saved.unshift(current);persist();refreshAll();if(view==='presupuestos')renderSaved();const archived=await saveArchive(current,b,currency);if(archived)toast('Copia PDF y JSON archivada en cotizaciones/.')}if(preview){const url=URL.createObjectURL(b),win=window.open(url,'_blank');if(!win){download(b,'SAFE-'+q.number+'-'+currency+'.pdf');toast('Bloqueo de ventanas: se descargó el PDF en su lugar.')}else{toast('Vista previa del PDF abierta en otra pestaña.');setTimeout(()=>URL.revokeObjectURL(url),120000)}}else{const safeName=(q.clientName||'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').slice(0,35);download(b,`${q.number}-${safeName}-${currency}.pdf`);toast('PDF '+currency+' de '+q.number+' descargado correctamente.');}}catch(e){console.error(e);toast('No se pudo generar el PDF: '+e.message,true)}}
 async function restoreCatalog(){if(!await safeConfirm('¿Restaurar los 18 productos y precios originales? Se perderán los cambios hechos al catálogo. Los presupuestos guardados no cambian.'))return;state.catalog=deep(initialCatalog);persist();archiveCatalog();renderCatalog();renderPicker();toast('Catálogo restaurado.')}
-function bind(){$('pdfCurrency').addEventListener('change',e=>{quote.pdfCurrency=e.target.value;queueDraft();refreshAll()});$('pdfTaxDisplay').addEventListener('change',e=>{quote.pdfTaxDisplay=e.target.value;queueDraft();refreshAll()});$('attachPlanSchematic').addEventListener('change',e=>{quote.attachPlanSchematic=e.target.checked;queueDraft()});$('refreshFX').addEventListener('click',()=>fetchRate());$('confirmManualFX').addEventListener('click',setManualFX);document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view)));document.querySelectorAll('[data-action="new-quote"]').forEach(el=>el.addEventListener('click',()=>newQuote()));$('menuToggle').onclick=()=>$('sidebar').classList.toggle('menu-open');$('newQuoteTop').onclick=()=>newQuote();$('resetQuote').onclick=()=>newQuote();$('saveQuote').onclick=saveQuote;$('saveQuoteTop').onclick=saveQuote;$('generatePdf').onclick=()=>exportPdf();$('printQuote').onclick=()=>exportPdf(quote,true);$('productSearch').addEventListener('input',renderPicker);$('categoryFilter').addEventListener('change',renderPicker);$('productPicker').addEventListener('click',e=>{const btn=e.target.closest('[data-add-product]');if(btn)addProduct(btn.dataset.addProduct)});$('quoteItems').addEventListener('input',e=>{const el=e.target.closest('[data-line-field]');if(!el)return;const x=quote.items[Number(el.dataset.idx)];if(!x)return;x[el.dataset.lineField]=Math.max(0,el.dataset.lineField==='sale'?netFromGross(el.value):el.dataset.lineField==='cost'?num(el.value)/(1+Math.max(0,num(state.settings.purchaseTaxRate))/100):num(el.value));if(el.dataset.lineField==='sale')x.autoSale=false;refreshAll();queueDraft();});$('quoteItems').addEventListener('click',e=>{const b=e.target.closest('[data-delete-line]');if(!b)return;quote.items.splice(Number(b.dataset.deleteLine),1);renderItems();refreshAll();queueDraft()});$('addCustomProduct').onclick=customItemModal;$('repriceItems').onclick=repriceItems;$('addInstallTask').onclick=()=>appendInstallTask();document.querySelectorAll('[data-task-preset]').forEach(el=>el.addEventListener('click',()=>appendInstallTask(el.dataset.taskPreset)));$('installTasksList').addEventListener('input',e=>{const field=e.target.dataset.installField,idx=Number(e.target.dataset.installIndex);if(!field||!quote.installTasks[idx])return;quote.installTasks[idx][field]=['qty','price','cost'].includes(field)?Math.max(0,field==='price'?netFromGross(e.target.value):num(e.target.value)):e.target.value;refreshAll();queueDraft()});$('installTasksList').addEventListener('click',e=>{const b=e.target.closest('[data-remove-install]');if(!b)return;quote.installTasks.splice(Number(b.dataset.removeInstall),1);renderInstallTasks();refreshAll();queueDraft()});const fields=['clientName','clientPhone','clientAddress','issueDate','validDays','installMode','installDifficulty','installWifiRate','installAnalogRate','installIpRate','installRecorderRate','analogCamerasPerKit','installPercent','installFixed','helperQty','helperPayEach','helperSaleEach','transportCost','transportSell','perDiemCost','perDiemSell','otherCost','otherSell','warrantyReserve','overhead','discountType','discountValue','paymentTerms','leadTime','scopeIncluded','scopeExcluded','warrantyText','internalNotes'];for(const name of fields){$(name).addEventListener('input',e=>{if(name==='discountType'&&quote.discountType!==e.target.value){quote.discountValue=0;$('discountValue').value=0}if(name==='helperQty'||name==='helperSaleEach')quote.helperAutoSaleEnabled=true;quote[name]=e.target.type==='number'?Math.max(0,(['installWifiRate','installAnalogRate','installIpRate','installRecorderRate','installFixed','helperSaleEach','transportSell','perDiemSell','otherSell'].includes(name)||(name==='discountValue'&&quote.discountType==='amount'))?netFromGross(e.target.value):num(e.target.value)):e.target.value;refreshAll();queueDraft()})} $('quoteSearch').addEventListener('input',renderSaved);$('savedQuotesList').addEventListener('click',e=>{const b=e.target.closest('[data-saved-action]');if(!b)return;const id=b.dataset.id;({open:()=>openQuote(id),pdf:()=>{const q=state.saved.find(x=>x.id===id);if(q)exportPdf(q)},duplicate:()=>duplicateQuote(id),delete:()=>deleteQuote(id)})[b.dataset.savedAction]?.()});$('chooseArchiveFolder').onclick=chooseArchiveFolder;$('backupFromSaved').onclick=generateBackup;$('exportBackup').onclick=generateBackup;$('supplierBackupNow').onclick=generateBackup;$('catalogTable').addEventListener('click',async e=>{const img=e.target.closest('[data-view-image]');if(img){viewProductImage(img.dataset.viewImage);return}const b=e.target.closest('[data-catalog-action]');if(!b)return;const {id,catalogAction}=b.dataset;if(catalogAction==='edit')productModal(id);if(catalogAction==='delete'&&await safeConfirm('¿Eliminar este producto del catálogo? Los ítems ya presupuestados no se modifican.')){state.catalog=state.catalog.filter(x=>x.id!==id);persist();archiveCatalog();renderCatalog();renderPicker();}});$('createCatalogProduct').onclick=()=>productModal();$('addSupplier').onclick=()=>supplierModal();$('supplierEmptyAdd').onclick=()=>supplierModal();$('supplierSearch').addEventListener('input',renderSuppliers);$('supplierSort').addEventListener('change',renderSuppliers);$('supplierList').addEventListener('click',e=>{const btn=e.target.closest('[data-supplier-action]');if(!btn)return;if(btn.dataset.supplierAction==='edit')supplierModal(btn.dataset.id);if(btn.dataset.supplierAction==='delete')deleteSupplier(btn.dataset.id)});$('restoreCatalog').onclick=restoreCatalog;$('saveSettings').onclick=saveSettings;$('resetLogo').onclick=()=>{state.settings.logoData='';persist();fillSettings();toast('Se restauró el logo inicial.')};$('logoUpload').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(file.size>2*1024*1024){toast('El logo debe pesar menos de 2 MB.',true);return}try{const uri=await fileToDataURL(file);state.settings.logoData=await normalizeLogo(uri);persist();fillSettings();toast('Logo personalizado actualizado.')}catch{toast('No se pudo leer la imagen.',true)}e.target.value=''});$('importBackup').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.format!=='safe-security-cotizador-v1'||!Array.isArray(data.catalog)||!Array.isArray(data.saved)||!data.settings||data.catalog.length>5000||data.saved.length>10000)throw Error('Archivo incompatible');if(!await safeConfirm('Esto reemplazará catálogo, proveedores, presupuestos, configuración y borrador. ¿Continuar?'))return;if(window.SafeServer)await window.SafeServer.replace(data);state={settings:{...initialSettings,...data.settings},catalog:data.catalog.map(cleanProduct),saved:data.saved.map(migrateQuote),packages:Array.isArray(data.packages)?data.packages:[],suppliers:Array.isArray(data.suppliers)?data.suppliers.map(cleanSupplier).filter(s=>s.name):[]};quote=data.draft?.items?migrateQuote(data.draft):createQuote(seqNum());persist();draftSave();fillQuoteForm();renderPicker();fillSettings();renderCatalog();renderSuppliers();archiveSuppliers();if(window.SafeTechnical)window.SafeTechnical.refresh();toast('Respaldo importado.')}catch(err){toast('Respaldo inválido: '+err.message,true)}finally{e.target.value=''}});$('modalClose').onclick=closeModal;$('modalCancel').onclick=closeModal;$('modalConfirm').onclick=()=>modalHandler();$('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalOpen)closeModal()})}
+function bind(){$('pdfCurrency').addEventListener('change',e=>{quote.pdfCurrency=e.target.value;queueDraft();refreshAll()});$('pdfTaxDisplay').addEventListener('change',e=>{quote.pdfTaxDisplay=e.target.value;queueDraft();refreshAll()});$('attachPlanSchematic').addEventListener('change',e=>{quote.attachPlanSchematic=e.target.checked;queueDraft()});$('refreshFX').addEventListener('click',()=>fetchRate());$('confirmManualFX').addEventListener('click',setManualFX);document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view)));document.querySelectorAll('[data-action="new-quote"]').forEach(el=>el.addEventListener('click',()=>newQuote()));$('menuToggle').onclick=()=>$('sidebar').classList.toggle('menu-open');$('newQuoteTop').onclick=()=>newQuote();$('resetQuote').onclick=()=>newQuote();$('saveQuote').onclick=saveQuote;$('saveQuoteTop').onclick=saveQuote;$('generatePdf').onclick=()=>exportPdf();$('printQuote').onclick=()=>exportPdf(quote,true);bindPicker();$('quoteItems').addEventListener('input',e=>{const el=e.target.closest('[data-line-field]');if(!el)return;const x=quote.items[Number(el.dataset.idx)];if(!x)return;x[el.dataset.lineField]=Math.max(0,el.dataset.lineField==='sale'?netFromGross(el.value):el.dataset.lineField==='cost'?num(el.value)/(1+Math.max(0,num(state.settings.purchaseTaxRate))/100):num(el.value));if(el.dataset.lineField==='sale')x.autoSale=false;const cell=document.querySelector('[data-total-for="'+el.dataset.idx+'"]');if(cell)cell.textContent=moneyShort(gross(num(x.quantity)*num(x.sale)));refreshAll();queueDraft();});$('quoteItems').addEventListener('click',e=>{const step=e.target.closest('[data-line-step]');if(step){changeLineQty(Number(step.dataset.idx),Number(step.dataset.lineStep));return}const b=e.target.closest('[data-delete-line]');if(!b)return;quote.items.splice(Number(b.dataset.deleteLine),1);renderItems();refreshAll();queueDraft()});$('addCustomProduct').onclick=customItemModal;$('repriceItems').onclick=repriceItems;$('addInstallTask').onclick=()=>appendInstallTask();document.querySelectorAll('[data-task-preset]').forEach(el=>el.addEventListener('click',()=>appendInstallTask(el.dataset.taskPreset)));$('installTasksList').addEventListener('input',e=>{const field=e.target.dataset.installField,idx=Number(e.target.dataset.installIndex);if(!field||!quote.installTasks[idx])return;quote.installTasks[idx][field]=['qty','price','cost'].includes(field)?Math.max(0,field==='price'?netFromGross(e.target.value):num(e.target.value)):e.target.value;refreshAll();queueDraft()});$('installTasksList').addEventListener('click',e=>{const b=e.target.closest('[data-remove-install]');if(!b)return;quote.installTasks.splice(Number(b.dataset.removeInstall),1);renderInstallTasks();refreshAll();queueDraft()});const fields=['clientName','clientPhone','clientAddress','issueDate','validDays','installMode','installDifficulty','installWifiRate','installAnalogRate','installIpRate','installRecorderRate','analogCamerasPerKit','installPercent','installFixed','helperQty','helperPayEach','helperSaleEach','transportCost','transportSell','perDiemCost','perDiemSell','otherCost','otherSell','warrantyReserve','overhead','discountType','discountValue','paymentTerms','leadTime','scopeIncluded','scopeExcluded','warrantyText','internalNotes'];for(const name of fields){$(name).addEventListener('input',e=>{if(name==='discountType'&&quote.discountType!==e.target.value){quote.discountValue=0;$('discountValue').value=0}if(name==='helperQty'||name==='helperSaleEach')quote.helperAutoSaleEnabled=true;quote[name]=e.target.type==='number'?Math.max(0,(['installWifiRate','installAnalogRate','installIpRate','installRecorderRate','installFixed','helperSaleEach','transportSell','perDiemSell','otherSell'].includes(name)||(name==='discountValue'&&quote.discountType==='amount'))?netFromGross(e.target.value):num(e.target.value)):e.target.value;refreshAll();queueDraft()})} $('quoteSearch').addEventListener('input',renderSaved);$('savedQuotesList').addEventListener('click',e=>{const b=e.target.closest('[data-saved-action]');if(!b)return;const id=b.dataset.id;({open:()=>openQuote(id),pdf:()=>{const q=state.saved.find(x=>x.id===id);if(q)exportPdf(q)},duplicate:()=>duplicateQuote(id),delete:()=>deleteQuote(id)})[b.dataset.savedAction]?.()});$('chooseArchiveFolder').onclick=chooseArchiveFolder;$('backupFromSaved').onclick=generateBackup;$('exportBackup').onclick=generateBackup;$('supplierBackupNow').onclick=generateBackup;$('catalogTable').addEventListener('click',async e=>{const img=e.target.closest('[data-view-image]');if(img){viewProductImage(img.dataset.viewImage);return}const b=e.target.closest('[data-catalog-action]');if(!b)return;const {id,catalogAction}=b.dataset;if(catalogAction==='edit')productModal(id);if(catalogAction==='delete'&&await safeConfirm('¿Eliminar este producto del catálogo? Los ítems ya presupuestados no se modifican.')){state.catalog=state.catalog.filter(x=>x.id!==id);persist();archiveCatalog();renderCatalog();renderPicker();}});$('createCatalogProduct').onclick=()=>productModal();$('addSupplier').onclick=()=>supplierModal();$('supplierEmptyAdd').onclick=()=>supplierModal();$('supplierSearch').addEventListener('input',renderSuppliers);$('supplierSort').addEventListener('change',renderSuppliers);$('supplierList').addEventListener('click',e=>{const btn=e.target.closest('[data-supplier-action]');if(!btn)return;if(btn.dataset.supplierAction==='edit')supplierModal(btn.dataset.id);if(btn.dataset.supplierAction==='delete')deleteSupplier(btn.dataset.id)});$('restoreCatalog').onclick=restoreCatalog;$('saveSettings').onclick=saveSettings;$('resetLogo').onclick=()=>{state.settings.logoData='';persist();fillSettings();toast('Se restauró el logo inicial.')};$('logoUpload').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(file.size>2*1024*1024){toast('El logo debe pesar menos de 2 MB.',true);return}try{const uri=await fileToDataURL(file);state.settings.logoData=await normalizeLogo(uri);persist();fillSettings();toast('Logo personalizado actualizado.')}catch{toast('No se pudo leer la imagen.',true)}e.target.value=''});$('importBackup').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.format!=='safe-security-cotizador-v1'||!Array.isArray(data.catalog)||!Array.isArray(data.saved)||!data.settings||data.catalog.length>5000||data.saved.length>10000)throw Error('Archivo incompatible');if(!await safeConfirm('Esto reemplazará catálogo, proveedores, presupuestos, configuración y borrador. ¿Continuar?'))return;if(window.SafeServer)await window.SafeServer.replace(data);state={settings:{...initialSettings,...data.settings},catalog:data.catalog.map(cleanProduct),saved:data.saved.map(migrateQuote),packages:Array.isArray(data.packages)?data.packages:[],suppliers:Array.isArray(data.suppliers)?data.suppliers.map(cleanSupplier).filter(s=>s.name):[]};quote=data.draft?.items?migrateQuote(data.draft):createQuote(seqNum());persist();draftSave();fillQuoteForm();renderPicker();fillSettings();renderCatalog();renderSuppliers();archiveSuppliers();if(window.SafeTechnical)window.SafeTechnical.refresh();toast('Respaldo importado.')}catch(err){toast('Respaldo inválido: '+err.message,true)}finally{e.target.value=''}});$('modalClose').onclick=closeModal;$('modalCancel').onclick=closeModal;$('modalConfirm').onclick=()=>modalHandler();$('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalOpen)closeModal()})}
 function fileToDataURL(file){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(file)})}
 function normalizeLogo(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const ratio=Math.min(1,1300/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*ratio));c.height=Math.max(1,Math.round(im.height*ratio));const ctx=c.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.91))};im.onerror=reject;im.src=src})}
 function normalizeProductImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const ratio=Math.min(1,640/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*ratio));c.height=Math.max(1,Math.round(im.height*ratio));const ctx=c.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.8))};im.onerror=reject;im.src=src})}
@@ -449,7 +762,7 @@ function init(){
   body.addEventListener('change',e=>{if(e.target.matches('input,textarea,select'))mark()});
   apply.addEventListener('click',()=>{
    // Forzamos el commit final incluso si el navegador no disparó change todavía.
-   body.querySelectorAll('input,textarea,select').forEach(el=>{if(el.id==='productSearch'||el.id==='categoryFilter')return;if(document.activeElement===el)el.dispatchEvent(new Event('input',{bubbles:true}))});
+   body.querySelectorAll('input,textarea,select').forEach(el=>{if(el.closest('.picker-catalog'))return;if(document.activeElement===el)el.dispatchEvent(new Event('input',{bubbles:true}))});
    quote.updatedAt=new Date().toISOString();
    clearTimeout(autoSaveTimer);
    refreshAll();
@@ -459,6 +772,6 @@ function init(){
    toast('Módulo '+(i+1)+' aplicado. Total actualizado.');
   });
  });
- const categoryOptions='<option value="">Todas las categorías</option>'+Object.entries(CATEGORY_LABELS).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');$('categoryFilter').innerHTML=categoryOptions;$('todayLabel').textContent=new Date().toLocaleDateString('es-UY',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});bind();fillQuoteForm();renderPicker();fillSettings();renderSuppliers();archiveInit();if(!window.SafeAccess||SafeAccess.can('cotizador'))fetchRate(quote,{quiet:true})}
+ const categoryOptions='<option value="">Todas</option>'+Object.entries(CATEGORY_LABELS).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');$('categoryFilter').innerHTML=categoryOptions;$('todayLabel').textContent=new Date().toLocaleDateString('es-UY',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});bind();fillQuoteForm();renderPicker();fillSettings();renderSuppliers();archiveInit();if(!window.SafeAccess||SafeAccess.can('cotizador'))fetchRate(quote,{quiet:true})}
 window.SAFE_APP={totals,initialCatalog,initialSettings,migrateQuote, get quote(){return quote},get state(){return state}, modal,closeModal,safeConfirm,initializeCollapsible,addProduct,renderItems,refreshAll,fillQuoteForm,renderPicker,persist,draftSave,queueDraft,toast,showView,nativeNetUSD,suggestSale,gross,netFromGross,netFromPurchaseGross,purchaseGross,esc,num,deep,makeId,installDetail};init();
 })();

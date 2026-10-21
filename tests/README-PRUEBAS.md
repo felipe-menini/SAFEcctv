@@ -27,9 +27,12 @@ Para desarrolladores. Requiere Python 3, Playwright y Chromium instalado; para e
 
 ```bash
 python tests/qa_v18.py
+python tests/qa_picker.py
 python tests/qa_pdf_v18.py
 python tests/qa_proveedores.py
 ```
+
+- `qa_picker.py` prueba el panel «Equipamiento y materiales»: dos columnas con catálogo y selección, miniatura por tarjeta, estado vacío, búsqueda con contador y limpieza, filtro por marca, filtro avanzado por rango de precio, favoritos persistentes y filtrados, agregar sin duplicar con control de cantidad, aviso de cámaras sin grabador, sugerencias que no se agregan solas, controles de cantidad en tarjeta y tabla, edición de la venta con recálculo del resumen, sugerencia manual, paquetes agregables (por suma de cantidades), lista de compras por proveedor, eliminación de líneas y el apilado a dos columnas en móvil sin desborde. No modifica datos reales.
 
 - `qa_v18.py` prueba navegación, plegado, confirmaciones UI, cámaras desplegables, distancias, almacenamiento en ambos sentidos y reglas de movimiento/reserva. En el Cotizador verifica que solo «Datos» y «Equipamiento» arranquen abiertos, que el acordeón de Instalación deje un bloque abierto, que el modo elegido abra su bloque y que el plegado se recuerde en `localStorage` (`safe.cotizadorPanels`). En paquetes: 5 predeterminados con **Eliminar** en cada tarjeta, edición de un predeterminado con marca **EDITADO** y **Restaurar original**, **alta desde cero** con `+ Nuevo paquete`, alta desde los equipos del presupuesto, baja de un paquete propio y de un predeterminado (que queda como baja `{id,deleted:true}` en `state.packages`), imposibilidad de aplicar un paquete eliminado y **Restaurar predeterminados**. Suma el paquete con **precio propio sin artículos**, su aplicación **sumando al final sin reemplazar** (costo guardado sin IVA), y la **línea manual de paquete desde el Cotizador** (`+ Agregar paquete`) con su precio final en la tabla de ítems. Regenera las capturas `docs/*-v1.8.png`.
 - `qa_pdf_v18.py` genera un PDF real y verifica que el modo «Quiero X días» muestre GB calculados y no los días de un HDD no seleccionado, y que no se expongan los costos de proveedor.

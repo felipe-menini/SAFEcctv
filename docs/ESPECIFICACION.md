@@ -14,6 +14,24 @@ Los paneles de Cotizador, Relevamiento, Paquetes, Grabación/Discos, Configuraci
 
 En el Cotizador solo «Datos del presupuesto» y «Equipamiento y materiales» arrancan abiertos: «Instalación técnica» y «Condiciones comerciales» quedan plegados y el navegador recuerda la última elección (`localStorage`, clave `safe.cotizadorPanels`). Dentro de «Instalación técnica», los bloques de valores, ayudantes, movilidad y otros gastos funcionan como acordeón con un solo bloque abierto; el bloque del modo elegido (automático, porcentaje o precio base) se abre solo al cambiar el modo. Los trabajos adicionales y el resumen del cálculo quedan siempre visibles. En la tarjeta del Catálogo se muestra únicamente «Proveedor: nombre» (sin ID ni otros metadatos).
 
+### Equipamiento y materiales
+
+El panel usa dos columnas en escritorio (catálogo a la izquierda, selección a la derecha con posición fija y scroll propio) y se apila en una sola columna por debajo de 1400 px. La selección muestra el resumen económico, los avisos de compatibilidad, las sugerencias de accesorios y la tabla compacta de ítems.
+
+- **Tarjetas de producto:** imagen 4:3 con `object-fit: contain` y respaldo cuando falta la foto, marca y modelo deducidos del nombre más categoría, descripción recortada, proveedor, precio de venta final y botón **+ Agregar**. Cuando el costo está en otra moneda y no hay tasa de cambio, el precio se muestra como **A consultar** (el precio se define al agregar el producto).
+- **Cantidades sin duplicar:** agregar un producto ya cargado suma cantidad a la línea existente. La tarjeta pasa a mostrar un control `−`/`+` y la etiqueta «En el presupuesto» en lugar del botón.
+- **Filtros:** búsqueda por nombre, marca, modelo, código, descripción y proveedor; filtros de categoría, marca y proveedor; accesos rápidos **Todo / Favoritos / Recientes / Paquetes**; filtros avanzados por rango de precio de venta, con imagen, con proveedor y solo grabadores. El contador indica cuántos productos coinciden y **Limpiar filtros** restablece todo.
+- **Favoritos y recientes:** se guardan por separado del catálogo en `localStorage` (`safe.catalogFavorites` y `safe.catalogRecent`). Marcar o desmarcar la estrella no modifica el producto ni el presupuesto.
+- **Sugerencias de accesorios:** se calculan a partir del último equipo agregado que tenga accesorios asociados (`SUGGEST_MAP`) y sólo se suman cuando se toca la sugerencia; nunca se agregan solas. Excluyen lo que ya está en el presupuesto y priorizan el mismo proveedor.
+- **Avisos de compatibilidad:** combinar kit analógico con equipos IP, cámaras sin grabador ni microSD, microSD sin cámaras y cableado sin cámaras. Son advertencias informativas: no bloquean ni alteran el cálculo.
+- **Equivalentes:** productos del mismo tipo con la misma marca y primer token de modelo se agrupan; la tarjeta ofrece **comparar proveedores**, con precio de venta, diferencia contra el más barato y alta directa de cualquiera de ellos.
+- **Tabla de ítems:** nombre con detalle, cantidad con control numérico y `−`/`+`, costo interno unitario (con IVA de compra, de sólo lectura cuando el costo está en UYU), precio de venta final editable y subtotal por línea. Editar la venta recalcula totales, IVA, PDF y el resumen lateral. Eliminar una línea actualiza todo de inmediato.
+- **Resumen lateral:** total de equipos a precio de venta, costo interno de los equipos y total al cliente. Es informativo y se recalcula con los mismos helpers de siempre.
+- **Lista de compras por proveedor:** documento interno agrupado por proveedor con costos internos y subtotales; no incluye precios de venta ni instalación y no se envía al cliente.
+- **Paquetes:** el acceso rápido **Paquetes** lista las plantillas comerciales y las aplica sumando al presupuesto, sin reemplazar lo cargado.
+
+No cambian fórmulas, márgenes, IVA, monedas ni persistencia: los ítems siguen guardando la venta neta y el costo neto, y la interfaz muestra el precio de venta con IVA y el costo con IVA de compra.
+
 ### Relevamiento
 
 La ficha del sitio y las fichas por cámara son parte del borrador y del presupuesto guardado. Cada cámara tiene identificación, tecnología, ubicación, **distancia desde NVR/DVR** (trayecto real en m), canalización, altura, toma, caja, observaciones y fotografía opcional comprimida. Las fichas individuales usan `<details>/<summary>`. El PDF del cliente solo puede contener un resumen, si se selecciona explícitamente.
