@@ -4,7 +4,7 @@
 if(window.__SAFE_SERVER_REQUIRED&&(!window.__SAFE_BOOT||!window.SafeServer)){document.body.innerHTML='<main class="auth-card" style="margin:10vh auto"><h1>No se pudo cargar la sesión</h1><p>No se abrirán datos locales ni se guardarán cambios sin conexión.</p><a href="/">Reintentar</a> · <a href="/login">Iniciar sesión</a></main>';return}
 const STORAGE_KEY='safe-security-cotizador-v1';
 const DRAFT_KEY='safe-security-cotizador-draft-v1';
-const CATEGORY_LABELS={wifi:'Cámaras WiFi',sd:'Memorias microSD',analog:'Kits analógicos (DVR)',ip:'Kits IP (NVR)',cable:'Cableado UTP',connector:'Conectores de red',accessory:'Accesorios e instalación',other:'Otros materiales'};
+const CATEGORY_LABELS={wifi:'Cámaras WiFi',camara:'Cámaras IP',sd:'Memorias microSD',analog:'Kits analógicos (DVR)',ip:'Kits IP (NVR)',cable:'Cableado UTP',connector:'Conectores de red',accessory:'Accesorios e instalación',other:'Otros materiales'};
 const initialCatalog=[
 {id:'wifi-h1c',name:'EZVIZ H1C',category:'wifi',cost:26,description:'Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.'},
 {id:'wifi-h6c',name:'EZVIZ H6C',category:'wifi',cost:35,description:'Solo cámara WiFi; sin microSD, enchufe/toma, caja estanca ni canalización.'},
