@@ -190,34 +190,58 @@ class Store:
             db.execute('UPDATE workspace SET revision=revision+1,payload=? WHERE id=1',(payload,))
         return {'ok':True,'revision':revision+1}
 
+    def seeds(self, legacy):
+        seeds={}
+        for key, path in [('catalog','catalogo/catalogo.json'),('suppliers','proveedores/proveedores.json')]:
+            file=Path(legacy)/path
+            if file.exists():
+                values=json.loads(file.read_text(encoding='utf-8-sig'))
+                seeds[key]=values if isinstance(values,list) else values.get('products' if key=='catalog' else 'suppliers',[])
+        return seeds
+
     def migrate(self, legacy):
         legacy = Path(legacy)
         if not legacy.is_dir(): raise ValueError('Directorio legado no encontrado')
+        seeds=self.seeds(legacy)
+        digest=hashlib.sha256(json.dumps(seeds,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        marker='seeds-'+digest
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
-            if db.execute("SELECT 1 FROM migrations WHERE name='legacy-v1'").fetchone():
+            if not seeds or db.execute('SELECT 1 FROM migrations WHERE name=?',(marker,)).fetchone():
                 return False
             current=db.execute('SELECT revision FROM workspace WHERE id=1').fetchone()[0]
-            if current != 0:
-                raise ValueError('MigraciÃ³n exige workspace vacÃ­o; importe un respaldo para combinar datos existentes.')
-            w={'settings':{},'catalog':[],'saved':[],'packages':[],'suppliers':[],'draft':None}
-            for key, path in [('catalog','catalogo/catalogo.json'),('suppliers','proveedores/proveedores.json')]:
-                file=legacy/path
-                if file.exists():
-                    values=json.loads(file.read_text(encoding='utf-8-sig'))
-                    w[key]=values if isinstance(values,list) else values.get('products' if key=='catalog' else 'suppliers',[])
-            for file in sorted((legacy/'cotizaciones').glob('SAFE-*.json')):
-                record=json.loads(file.read_text(encoding='utf-8-sig'))
-                if isinstance(record.get('quote'),dict):
-                    w['saved'].append(record['quote'])
-            w=self.validate_workspace(w)
-            payload=self.dehydrate(w,'fmenini',db)
-            db.execute('UPDATE workspace SET revision=1,payload=? WHERE id=1',(json.dumps(payload,ensure_ascii=False),))
-            for file in sorted((legacy/'cotizaciones').glob('SAFE-*.pdf')):
-                raw=file.read_bytes()
-                if raw.startswith(b'%PDF-'):
-                    db.execute('INSERT OR IGNORE INTO pdfs VALUES(?,?)',(file.name,raw))
-            db.execute("INSERT INTO migrations VALUES('legacy-v1')")
+            if current == 0:
+                w={'settings':{},'catalog':[],'saved':[],'packages':[],'suppliers':[],'draft':None}
+                w['catalog']=seeds.get('catalog',[])
+                w['suppliers']=seeds.get('suppliers',[])
+                for file in sorted((legacy/'cotizaciones').glob('SAFE-*.json')):
+                    record=json.loads(file.read_text(encoding='utf-8-sig'))
+                    if isinstance(record.get('quote'),dict):
+                        w['saved'].append(record['quote'])
+                w=self.validate_workspace(w)
+                payload=self.dehydrate(w,'fmenini',db)
+                db.execute('UPDATE workspace SET revision=1,payload=? WHERE id=1',(json.dumps(payload,ensure_ascii=False),))
+                for file in sorted((legacy/'cotizaciones').glob('SAFE-*.pdf')):
+                    raw=file.read_bytes()
+                    if raw.startswith(b'%PDF-'):
+                        db.execute('INSERT OR IGNORE INTO pdfs VALUES(?,?)',(file.name,raw))
+                db.execute("INSERT INTO migrations VALUES('legacy-v1')")
+            else:
+                # Workspace already in use: merge seeds by id so client data survives deployments.
+                w=json.loads(db.execute('SELECT payload FROM workspace WHERE id=1').fetchone()[0])
+                w=self.validate_workspace(w)
+                catalog={p['id']:p for p in w['catalog']}
+                for product in seeds.get('catalog',[]):
+                    catalog[product['id']]=self.dehydrate(product,'fmenini',db)
+                w['catalog']=list(catalog.values())
+                suppliers={s.get('id') or s.get('name'):s for s in w['suppliers']}
+                for supplier in seeds.get('suppliers',[]):
+                    suppliers[supplier.get('id') or supplier.get('name')]=supplier
+                w['suppliers']=list(suppliers.values())
+                payload=json.dumps(w,ensure_ascii=False,allow_nan=False)
+                if payload != db.execute('SELECT payload FROM workspace WHERE id=1').fetchone()[0]:
+                    db.execute('UPDATE workspace SET revision=revision+1,payload=? WHERE id=1',(payload,))
+            db.execute('INSERT INTO migrations VALUES(?)',(marker,))
         return True
 
     def backup(self, output):

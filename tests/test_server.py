@@ -160,6 +160,35 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(source.exists())
         self.assertEqual(self.server.store.workspace()['workspace']['catalog'][0]['name'], 'Legacy')
 
+    def test_seed_merge_keeps_client_data_in_nonempty_workspace(self):
+        root = Path(self.tmp.name)/'seeds'
+        (root/'catalogo').mkdir(parents=True)
+        (root/'proveedores').mkdir(parents=True)
+        source = root/'catalogo'/'catalogo.json'
+        source.write_text(json.dumps({'products':[{'id':'shared','name':'Seed name'},{'id':'fresh','name':'Fresh','image':self.image()}]}))
+        (root/'proveedores'/'proveedores.json').write_text(json.dumps({'suppliers':[{'id':'ofimax','name':'Ofimax'}]}))
+        store = self.server.store
+        w = store.workspace()['workspace']
+        w['catalog'] = [{'id':'shared','name':'Client name'}, {'id':'client','name':'Client only','image':self.image()}]
+        store.save_workspace(w, store.workspace()['revision'], 'fmenini')
+        revision = store.workspace()['revision']
+
+        self.assertTrue(store.migrate(root))
+        merged = store.workspace()['workspace']
+        by_id = {p['id']:p for p in merged['catalog']}
+        self.assertEqual(by_id['shared']['name'], 'Seed name')
+        self.assertEqual(by_id['client']['name'], 'Client only')
+        self.assertEqual(by_id['fresh']['name'], 'Fresh')
+        self.assertTrue(by_id['fresh']['image'].startswith('/media/'))
+        self.assertEqual([s['name'] for s in merged['suppliers']], ['Ofimax'])
+        self.assertEqual(store.workspace()['revision'], revision+1)
+
+        self.assertFalse(store.migrate(root))
+        self.assertEqual(store.workspace()['revision'], revision+1)
+        source.write_text(json.dumps({'products':[{'id':'shared','name':'Seed name'},{'id':'fresh','name':'Fresh','image':self.image()},{'id':'later','name':'Later'}]}))
+        self.assertTrue(store.migrate(root))
+        self.assertIn('later', {p['id'] for p in store.workspace()['workspace']['catalog']})
+
     def test_import_invalid_image_is_atomic_and_password_rotation(self):
         a = self.login('fmenini')
         w = self.server.store.workspace()['workspace']
