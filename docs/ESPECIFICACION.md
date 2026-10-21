@@ -12,6 +12,8 @@
 
 Los paneles de Cotizador, Relevamiento, Paquetes, Grabación/Discos, Configuración y las listas de Catálogo, Proveedores e Historial tienen encabezados y flechas desplegables. Las confirmaciones usan la ventana modal corporativa `safeConfirm`, no `window.confirm()`.
 
+En el Cotizador solo «Datos del presupuesto» y «Equipamiento y materiales» arrancan abiertos: «Instalación técnica» y «Condiciones comerciales» quedan plegados y el navegador recuerda la última elección (`localStorage`, clave `safe.cotizadorPanels`). Dentro de «Instalación técnica», los bloques de valores, ayudantes, movilidad y otros gastos funcionan como acordeón con un solo bloque abierto; el bloque del modo elegido (automático, porcentaje o precio base) se abre solo al cambiar el modo. Los trabajos adicionales y el resumen del cálculo quedan siempre visibles. En la tarjeta del Catálogo se muestra únicamente «Proveedor: nombre» (sin ID ni otros metadatos).
+
 ### Relevamiento
 
 La ficha del sitio y las fichas por cámara son parte del borrador y del presupuesto guardado. Cada cámara tiene identificación, tecnología, ubicación, **distancia desde NVR/DVR** (trayecto real en m), canalización, altura, toma, caja, observaciones y fotografía opcional comprimida. Las fichas individuales usan `<details>/<summary>`. El PDF del cliente solo puede contener un resumen, si se selecciona explícitamente.

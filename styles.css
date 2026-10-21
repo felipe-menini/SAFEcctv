@@ -195,3 +195,12 @@
 .product-image-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .product-image-row input[type=file]{font-size:12px;max-width:230px}
 .product-image-view img{max-width:100%;max-height:68vh;display:block;margin:0 auto;border-radius:12px;border:1px solid var(--border)}
+/* Cotizador compacto: acordeón de las secciones de instalación (una abierta a la vez). */
+.install-pricing-grid{grid-template-columns:1fr;align-items:start}
+.install-pricing-grid>.mini-section>.mini-title{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0;user-select:none;border-radius:7px}
+.install-pricing-grid>.mini-section>.mini-title:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.install-pricing-grid>.mini-section>.mini-title:hover{color:var(--blue-deep)}
+.install-pricing-grid>.mini-section:not(.mini-collapsed)>.mini-title{margin-bottom:14px}
+.mini-chevron{display:inline-flex;color:var(--muted);transition:transform .18s ease}
+.mini-collapsed>.mini-title .mini-chevron{transform:rotate(-90deg)}
+.mini-collapsed>:not(.mini-title){display:none!important}

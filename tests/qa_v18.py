@@ -25,6 +25,14 @@ with sync_playwright() as pw:
  tog=page.locator('#view-cotizador .collapse-toggle').first
  tog.click();ck('Quote collapse hides body',page.locator('#view-cotizador .panel').first.locator('.panel-body').is_hidden())
  tog.click();ck('Quote reopen restores body',page.locator('#view-cotizador .panel').first.locator('.panel-body').is_visible())
+ ck('Cotizador abre solo datos y equipamiento',page.evaluate("(()=>[...document.querySelectorAll('#view-cotizador .collapsible-panel')].map(p=>p.classList.contains('collapsed')))()")==[False,False,True,True])
+ mini="(()=>{const s=[...document.querySelectorAll('#installationSection .install-pricing-grid>.mini-section')].filter(x=>!x.hidden);return [s.length,s.filter(x=>!x.classList.contains('mini-collapsed')).map(x=>x.querySelector('.mini-title').textContent.trim())]})()"
+ opened=page.evaluate(mini);ck('Instalación abre un solo bloque',opened[0]>=3 and len(opened[1])==1 and 'Valores' in opened[1][0])
+ page.locator('#view-cotizador .collapse-toggle').nth(2).click()
+ ck('Instalación se despliega al pedirlo',page.locator('#installationSection .install-pricing-grid').is_visible())
+ page.locator('#installationSection .mini-title',has_text='Ayudantes').click()
+ opened=page.evaluate(mini);ck('Acordeón: solo Ayudantes queda abierto',len(opened[1])==1 and 'Ayudantes' in opened[1][0])
+ ck('Se recuerda el plegado elegido',page.evaluate("JSON.parse(localStorage.getItem('safe.cotizadorPanels')||'{}').instalacion")==False)
  page.locator('#resetQuote').click();ck('Custom confirmation appears',page.locator('#safeConfirmBackdrop').is_visible() and 'nuevo presupuesto' in page.locator('#safeConfirmMessage').inner_text().lower() if page.locator('#safeConfirmBackdrop').is_visible() else True)
  if page.locator('#safeConfirmBackdrop').is_visible():page.locator('#safeConfirmCancel').click()
  page.locator('.nav-item[data-view="relevamiento"]').click()

@@ -25,6 +25,7 @@ Desarrollo: `planner/` contiene las fuentes del editor; `planner/embedded-bridge
 - **Espaciado uniforme:** Relevamiento técnico, Paquetes comerciales, Grabación y discos y Proveedores separan sus paneles principales con **20 px en escritorio y 15 px en móvil**, igual que el Cotizador. Las fichas internas y los campos mantienen su distribución.
 - **Proveedores → Guardado y respaldo:** incorporamos un segundo módulo desplegable que explica dónde se almacenan los proveedores y un botón **Descargar respaldo completo**. Descarga exactamente el mismo respaldo JSON integral que Configuración; incluye los proveedores y sus relaciones con el catálogo.
 - **Sin cambios en los datos:** no se migran ni reescriben presupuestos, proveedores o precios para aplicar estos estilos. Se mantienen el PDF, el cálculo de IVA y los paquetes editables.
+- **Cotizador más prolijo:** al entrar solo «Datos del presupuesto» y «Equipamiento y materiales» quedan abiertos; «Instalación técnica» y «Condiciones comerciales» arrancan plegados y el navegador recuerda la última elección. Dentro de Instalación, valores, ayudantes, movilidad y otros gastos se abren como acordeón (uno por vez) y el bloque del modo elegido se abre solo. En el Catálogo, la tarjeta muestra únicamente «Proveedor: nombre».
 
 ### Ubicación de archivos y respaldo
 

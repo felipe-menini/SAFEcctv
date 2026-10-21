@@ -197,7 +197,7 @@ function duplicateQuote(id){const source=state.saved.find(q=>q.id===id);if(!sour
 async function deleteQuote(id){const source=state.saved.find(q=>q.id===id);if(!source)return;if(!await safeConfirm('¿Eliminar definitivamente el presupuesto '+source.number+'? Si estás usando la carpeta local también se eliminarán su JSON y sus PDF.'))return;state.saved=state.saved.filter(q=>q.id!==id);persist();renderSaved();refreshAll();if(archiveMode==='server'&&!window.SafeServer){fetch('/api/eliminar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({number:source.number})}).then(r=>{if(!r.ok)throw Error('No se pudo borrar el archivo')}).catch(e=>toast('Borrado del historial, pero no de la carpeta: '+e.message,true))}toast('Presupuesto eliminado.');}
 function formatDate(iso){if(!iso)return'—';const [y,m,d]=iso.split('-');return`${d||'??'}/${m||'??'}/${y||'????'}`}
 function renderSaved(){const term=$('quoteSearch').value.toLowerCase();const arr=state.saved.filter(q=>[q.number,q.clientName,q.clientAddress].join(' ').toLowerCase().includes(term));$('savedQuotesList').innerHTML=arr.length?`<div class="table-scroll"><table class="data-table"><thead><tr><th>Número</th><th>Cliente</th><th>Fecha</th><th>Total actual*</th><th>Acciones</th></tr></thead><tbody>${arr.map(q=>`<tr><td><strong>${esc(q.number)}</strong><br><span class="quote-status">Guardado</span></td><td><b>${esc(q.clientName||'Sin cliente')}</b><small>${esc(q.clientAddress||'Sin dirección')}</small></td><td>${esc(formatDate(q.issueDate))}</td><td><b>${moneyShort(totals(q).customerTotal)}</b></td><td><div class="table-actions"><button class="action-mini" data-saved-action="open" data-id="${esc(q.id)}">Editar</button><button class="action-mini" data-saved-action="pdf" data-id="${esc(q.id)}">PDF</button><button class="action-mini" data-saved-action="duplicate" data-id="${esc(q.id)}">Duplicar</button><button class="action-mini danger" data-saved-action="delete" data-id="${esc(q.id)}">Eliminar</button></div></td></tr>`).join('')}</tbody></table></div><p class="tiny-muted">* Se recalcula con la configuración fiscal actual. Los importes por producto incluidos en cada presupuesto se conservan.</p>`:'<div class="empty-state">Todavía no hay presupuestos que coincidan con tu búsqueda.</div>';}
-function renderCatalog(){$('catalogTable').innerHTML=state.catalog.map(p=>`<tr><td><div class="catalog-product">${p.image?`<img class="catalog-thumb" data-view-image="${esc(p.image)}" src="${esc(p.image)}" alt="">`:''}<div><b>${esc(p.name)}</b><small>${p.supplierId&&supplierById(p.supplierId)?'Proveedor: '+esc(supplierById(p.supplierId).name)+' · ':''}ID: ${esc(p.id)}</small></div></div></td><td>${esc(CATEGORY_LABELS[p.category])}</td><td><strong>${formatNative(p)}</strong></td><td style="max-width:380px;color:var(--muted)">${esc(p.description)}</td><td><div class="table-actions"><button class="action-mini" data-catalog-action="edit" data-id="${esc(p.id)}">Editar</button><button class="action-mini danger" data-catalog-action="delete" data-id="${esc(p.id)}">×</button></div></td></tr>`).join('');}
+function renderCatalog(){$('catalogTable').innerHTML=state.catalog.map(p=>`<tr><td><div class="catalog-product">${p.image?`<img class="catalog-thumb" data-view-image="${esc(p.image)}" src="${esc(p.image)}" alt="">`:''}<div><b>${esc(p.name)}</b>${p.supplierId&&supplierById(p.supplierId)?'<small>Proveedor: '+esc(supplierById(p.supplierId).name)+'</small>':''}</div></div></td><td>${esc(CATEGORY_LABELS[p.category])}</td><td><strong>${formatNative(p)}</strong></td><td style="max-width:380px;color:var(--muted)">${esc(p.description)}</td><td><div class="table-actions"><button class="action-mini" data-catalog-action="edit" data-id="${esc(p.id)}">Editar</button><button class="action-mini danger" data-catalog-action="delete" data-id="${esc(p.id)}">×</button></div></td></tr>`).join('');}
 function viewProductImage(src){modal('Imagen del producto',`<div class="product-image-view"><img src="${esc(src)}" alt=""></div>`,()=>closeModal(),'Cerrar')}
 
 function supplierById(id){return (state.suppliers||[]).find(s=>s.id===id)}
@@ -379,10 +379,46 @@ function bind(){$('pdfCurrency').addEventListener('change',e=>{quote.pdfCurrency
 function fileToDataURL(file){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(file)})}
 function normalizeLogo(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const ratio=Math.min(1,1300/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*ratio));c.height=Math.max(1,Math.round(im.height*ratio));const ctx=c.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.91))};im.onerror=reject;im.src=src})}
 function normalizeProductImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const ratio=Math.min(1,640/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*ratio));c.height=Math.max(1,Math.round(im.height*ratio));const ctx=c.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.8))};im.onerror=reject;im.src=src})}
+function initInstallAccordion(){
+ const grid=document.querySelector('#installationSection .install-pricing-grid');
+ if(!grid)return;
+ const sections=[...grid.querySelectorAll(':scope > .mini-section')];
+ if(!sections.length)return;
+ const byMode={auto:'installWifiRate',percent:'installPercent',fixed:'installFixed'};
+ const openSection=target=>{sections.forEach(sec=>{const closed=sec!==target;sec.classList.toggle('mini-collapsed',closed);const title=sec.querySelector('.mini-title');if(title)title.setAttribute('aria-expanded',String(!closed))})};
+ sections.forEach(sec=>{
+  const title=sec.querySelector('.mini-title');
+  if(!title||title.dataset.accordion==='1')return;
+  title.dataset.accordion='1';
+  title.setAttribute('role','button');
+  title.setAttribute('tabindex','0');
+  const chevron=document.createElement('span');
+  chevron.className='mini-chevron';
+  chevron.setAttribute('aria-hidden','true');
+  chevron.innerHTML='<svg viewBox="0 0 24 24" width="15" height="15" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+  title.append(chevron);
+  const toggle=()=>openSection(sec);
+  title.addEventListener('click',toggle);
+  title.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
+ });
+ const modeSelect=document.getElementById('installMode');
+ const syncMode=mode=>{const sec=sections.find(s=>s.querySelector('#'+(byMode[mode]||'')));if(sec&&!sec.hidden)openSection(sec)};
+ if(modeSelect)modeSelect.addEventListener('change',()=>syncMode(modeSelect.value));
+ if(window.MutationObserver){const mo=new MutationObserver(ms=>ms.forEach(m=>{if(!m.target.hidden)openSection(m.target)}));Object.values(byMode).forEach(id=>{const el=document.getElementById(id);if(el)mo.observe(el,{attributes:true,attributeFilter:['hidden']})})}
+ const current=modeSelect?modeSelect.value:'auto';
+ const target=sections.find(s=>s.querySelector('#'+(byMode[current]||''))&&!s.hidden)||sections.find(s=>!s.hidden)||sections[0];
+ openSection(target);
+}
 function init(){
+ initInstallAccordion();
+ const PANEL_KEYS=['datos','equipos','instalacion','condiciones'];
+ const panelPrefs=()=>{try{return JSON.parse(localStorage.getItem('safe.cotizadorPanels')||'{}')||{}}catch(e){return {}}};
+ const rememberPanel=(key,closed)=>{try{const all=panelPrefs();all[key]=closed;localStorage.setItem('safe.cotizadorPanels',JSON.stringify(all))}catch(e){}};
+ const savedPanels=panelPrefs();
  document.querySelectorAll('#view-cotizador .collapsible-panel').forEach((panel,i)=>{
   const head=panel.querySelector('.panel-head');
   const body=panel.querySelector('.panel-body');
+  const key=PANEL_KEYS[i]||('panel-'+i);
   head.classList.add('clickable-panel-head');
   const toggle=document.createElement('button');
   toggle.type='button';
@@ -393,11 +429,13 @@ function init(){
   toggle.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
   body.id='safe-panel-body-'+(i+1);
   head.append(toggle);
-  function setCollapsed(closed){
+  function setCollapsed(closed,remember=true){
    panel.classList.toggle('collapsed',closed);
    toggle.setAttribute('aria-expanded',String(!closed));
    toggle.setAttribute('aria-label',closed?'Desplegar módulo':'Contraer módulo');
+   if(remember)rememberPanel(key,closed);
   }
+  setCollapsed(typeof savedPanels[key]==='boolean'?savedPanels[key]:i>=2,false);
   toggle.addEventListener('click',e=>{e.stopPropagation();setCollapsed(!panel.classList.contains('collapsed'))});
   head.addEventListener('click',e=>{if(e.target.closest('button,input,select,textarea,a'))return;setCollapsed(!panel.classList.contains('collapsed'))});
   const footer=document.createElement('div');
