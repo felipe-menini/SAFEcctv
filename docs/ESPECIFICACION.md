@@ -5,7 +5,7 @@
 - **Cliente:** HTML5, CSS y JavaScript sin framework ni dependencias externas obligatorias.
 - **Persistencia local:** `localStorage` para ajustes, catálogo, proveedores, paquetes, borrador y cotizaciones. Exportar respaldo JSON antes de actualizar, y regularmente.
 - **Servidor opcional:** `servidor_safe.py` (Python 3, librería estándar) escuchando exclusivamente en `127.0.0.1:8787`, para archivar PDF y JSON en `cotizaciones/` y directorio de proveedores en `proveedores/`.
-- **PDF:** generador offline `pdf.js`, con logo, USD/UYU, subtotal, IVA correspondiente, total y condiciones; **excluye costos internos y fotos**.
+- **PDF:** generador offline `pdf.js`, con logo, USD/UYU, subtotal, IVA correspondiente, total y condiciones; **excluye costos internos y fotos**. El selector **IVA desglosado / Solo total** del panel de exportación decide si el resumen muestra subtotal e IVA o únicamente el importe final con IVA incluido; si hay descuento, las líneas «Total previo» y «Descuento» se mantienen para que el importe cierre.
 - **Configuración comercial:** catálogo de equipos, IVA de productos, tasa de servicios y márgenes configurables. Los servicios se ofrecen inicialmente sin IVA, sujeto a validación fiscal profesional.
 
 ## Interfaz
@@ -24,11 +24,11 @@ Cinco paquetes predeterminados editables y paquetes personalizados. Cada entrada
 
 Alta y baja de paquetes: **+ Nuevo paquete** abre el mismo editor para armar una plantilla desde cero (nombre, tipo, descripción y artículos del catálogo, sin depender del presupuesto actual), con un máximo de 60 paquetes personalizados; el alta **desde los equipos del presupuesto** se conserva. **Eliminar** está disponible en todos los paquetes: los personalizados se quitan del estado y los predeterminados se registran como baja `{id,deleted:true}` en `state.packages`, porque la plantilla vive en el código. Mientras exista alguna baja, el encabezado muestra **Restaurar predeterminados** para volver al listado de fábrica sin tocar los paquetes propios.
 
-Paquetes con precio propio: además de los artículos del catálogo, una plantilla puede llevar `price` (precio de venta obligatorio de este tipo de paquete) y `cost` (costo estimado opcional). La validación exige nombre y al menos un artículo del catálogo o un precio; un paquete sin artículos se muestra con su precio en la tarjeta y se agrega al presupuesto como una sola línea comercial `paquete (nombre)` con la descripción de la plantilla. Si la plantilla combina artículos y precio, primero entra la línea del paquete y después los equipos. Los valores se cargan como precio final y se guardan netos para el IVA, igual que el resto de los ítems.
+Paquetes con precio propio: además de los artículos del catálogo, una plantilla puede llevar `price` (precio de venta obligatorio de este tipo de paquete) y `cost` (costo sin IVA, opcional: es lo que te cuesta a vos y el IVA de compra se agrega al analizarlo). La validación exige nombre y al menos un artículo del catálogo o un precio; un paquete sin artículos se muestra con su precio en la tarjeta y se agrega al presupuesto como una sola línea comercial `paquete (nombre)` con la descripción de la plantilla. Si la plantilla combina artículos y precio, primero entra la línea del paquete y después los equipos. El precio se carga como precio final y se guarda neto para el IVA, igual que el resto de los ítems; el costo se guarda tal como se carga, sin IVA.
 
 Aplicar un paquete («Agregar paquete») SUMA al presupuesto actual, nunca reemplaza: no pide confirmación destructiva, respeta lo que ya estaba cargado y agrega las líneas al final del listado, de modo que todo lo que se cargue después quede listado debajo.
 
-Línea manual desde el Cotizador: el botón **+ Agregar paquete** del panel de equipos abre un formulario corto (título, descripción, precio de venta y costo opcional) y crea la misma línea `paquete (título)` sin pasar por la plantilla ni por el catálogo.
+Línea manual desde el Cotizador: el botón **+ Agregar paquete** del panel de equipos abre un formulario corto (título, descripción, precio de venta y costo sin IVA opcional) y crea la misma línea `paquete (título)` sin pasar por la plantilla ni por el catálogo.
 
 ### Grabación y discos
 

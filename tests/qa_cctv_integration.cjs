@@ -67,7 +67,19 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     await page.waitForFunction(()=>window.__qaBlob&&window.__qaBlob.type==='application/pdf');
     const withoutScheme=await page.evaluate(async()=>await window.__qaBlob.text());
     assert.doesNotMatch(withoutScheme,/ESQUEMA DE INSTALAC/);
+    // IVA en el PDF: por defecto se desglosa; con "Solo total" el resumen no muestra subtotal ni IVA
+    assert.match(withoutScheme,/Subtotal sin IVA/);
+    assert.match(withoutScheme,/IVA DESGLOSADO/);
+    await page.locator('#pdfTaxDisplay').selectOption('total');
+    await page.evaluate(()=>{window.__qaBlob=null});
+    await page.locator('#generatePdf').click();
+    await page.waitForFunction(()=>window.__qaBlob&&window.__qaBlob.type==='application/pdf');
+    const totalOnly=await page.evaluate(async()=>await window.__qaBlob.text());
+    assert.doesNotMatch(totalOnly,/Subtotal sin IVA/);
+    assert.doesNotMatch(totalOnly,/IVA DESGLOSADO/);
+    assert.match(totalOnly,/IVA INCLUIDO/);
+    assert.match(totalOnly,/TOTAL DEL PRESUPUESTO/);
     assert.deepEqual(errors,[]);
-    console.log('PASS real SAFE integration: quote draft, geometry, image, zero opacity, backup/import round trip, iframe refresh, PDF schematic annex');
+    console.log('PASS real SAFE integration: quote draft, geometry, image, zero opacity, backup/import round trip, iframe refresh, PDF schematic annex and PDF tax display');
   }finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

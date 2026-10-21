@@ -135,7 +135,7 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     const priced=page.locator('#packageCards .tech-package',{hasText:'Mantenimiento anual'});
     assert.equal(await priced.count(),1,'un paquete sin artículos del catálogo se guarda con su precio propio');
     assert.match(await priced.locator('.package-price').textContent(),/Precio de venta USD 480,00/,'la tarjeta muestra el precio propio');
-    assert.match(await priced.locator('.package-price').textContent(),/costo estimado USD 120,00/,'la tarjeta muestra el costo estimado opcional');
+    assert.match(await priced.locator('.package-price').textContent(),/costo con IVA USD 146,40/,'la tarjeta muestra el costo con el IVA de compra agregado');
     assert.match(await priced.locator('.package-price + small').textContent(),/Sin artículos del catálogo/);
 
     // Sin precio y sin artículos no se guarda
@@ -152,7 +152,7 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     const before=await page.evaluate(()=>SAFE_APP.quote.items.length);
     await priced.locator('[data-package-apply]').click();
     await page.waitForFunction(()=>SAFE_APP.quote.items.some(x=>x.name==='paquete (Mantenimiento anual)'));
-    const line=await page.evaluate(()=>{const items=SAFE_APP.quote.items,x=items.find(i=>i.name==='paquete (Mantenimiento anual)');return{total:items.length,index:items.indexOf(x),productId:x.productId,category:x.category,quantity:x.quantity,description:x.description,shown:SAFE_APP.gross(x.sale)}});
+    const line=await page.evaluate(()=>{const items=SAFE_APP.quote.items,x=items.find(i=>i.name==='paquete (Mantenimiento anual)');return{total:items.length,index:items.indexOf(x),productId:x.productId,category:x.category,quantity:x.quantity,description:x.description,shown:SAFE_APP.gross(x.sale),cost:x.cost,costShown:SAFE_APP.purchaseGross(x.cost)}});
     assert.equal(line.total,before+1,'el paquete se suma al presupuesto en vez de reemplazarlo');
     assert.equal(line.index,before,'la línea del paquete se agrega después de lo que ya estaba cargado');
     assert.equal(line.productId,'','la línea del paquete no depende de un artículo del catálogo');
@@ -160,6 +160,8 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     assert.equal(line.quantity,1);
     assert.match(line.description,/Visita semestral/);
     assert.ok(Math.abs(line.shown-480)<0.01,'el precio del paquete se respeta tal como se cargó');
+    assert.equal(line.cost,120,'el costo se guarda sin IVA, tal como se carga');
+    assert.ok(Math.abs(line.costShown-146.4)<0.01,'el IVA de compra se agrega después sobre el costo neto');
 
     // Línea de paquete manual desde el cotizador
     await page.locator('.nav-item[data-view="cotizador"]').click();

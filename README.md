@@ -49,7 +49,7 @@ Desarrollo: `planner/` contiene las fuentes del editor; `planner/embedded-bridge
 
 - Cinco paquetes de ejemplo para empezar más rápido.
 - Podés crear, editar y reutilizar tus propios paquetes, y editar los predeterminados (con opción de restaurarlos).
-- Un paquete puede llevar **precio propio** (venta obligatoria y costo estimado opcional) además de, o en lugar de, artículos del catálogo; al agregarlo entra como una línea `paquete (nombre)`.
+- Un paquete puede llevar **precio propio** (venta obligatoria y costo sin IVA opcional) además de, o en lugar de, artículos del catálogo; al agregarlo entra como una línea `paquete (nombre)`. El costo es el tuyo: cargalo sin IVA y la aplicación agrega el IVA de compra en el análisis interno.
 - La aplicación usa el precio de venta sugerido del catálogo al cargar cada kit.
 - **Agregar paquete** suma al final del presupuesto: nunca reemplaza lo que ya estaba cargado. También podés cargar un paquete manual con **+ Agregar paquete** desde el Cotizador.
 
@@ -115,7 +115,7 @@ Los archivos en esta carpeta quedan en tu computadora, no en la nube. Hacé copi
 - **Equipamiento:** el IVA de venta comienza en 22%, incorporado al precio sugerido. El precio de venta inicial se calcula con un margen comercial sugerido de 35% sobre la venta neta, editable en Configuración. El detalle de IVA se obtiene desde los importes finales, **sin sumarlo por segunda vez**.
 - **Instalación y otros servicios:** tienen por defecto **tasa de IVA de 0%** a pedido del usuario; el precio ya indicado por instalación no cambia al pasar de v1.4 a v1.5. Incluye ayudantes, transporte, viáticos y trabajos adicionales. La tasa de servicios es editable en Configuración por si necesitás modificar el tratamiento.
 - **Descuentos:** se prorratean proporcionalmente entre equipamiento y servicios para ajustar correctamente el IVA de los equipos.
-- **PDF del cliente:** muestra importes unitarios y finales, subtotal sin IVA, IVA **únicamente de equipamiento** (si el servicio tiene tasa cero) y total final; no incluye costos internos ni rentabilidad. En el renglón de instalación dice “Sin IVA”.
+- **PDF del cliente:** muestra importes unitarios y finales, subtotal sin IVA, IVA **únicamente de equipamiento** (si el servicio tiene tasa cero) y total final; no incluye costos internos ni rentabilidad. En el renglón de instalación dice “Sin IVA”. El selector **IVA en el PDF del cliente** permite elegir **IVA desglosado** (por defecto) o **Solo total (IVA incluido)**, que imprime únicamente el importe final, sin subtotal ni líneas de IVA.
 
 **Advertencia fiscal:** que el programa pueda cotizar la instalación con tasa 0% **no significa que esa operación esté exonerada legalmente**. Confirmá con tu contador qué corresponde facturar según tu actividad y régimen en Uruguay antes de usarlo como documento tributario. Es un **presupuesto comercial**, no una factura electrónica.
 

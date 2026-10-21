@@ -99,7 +99,7 @@ with sync_playwright() as pw:
  page.locator('#pkgCost').fill('120')
  page.locator('#modalConfirm').click()
  priced=card('Mantenimiento anual')
- ck('Priced package saved without catalog articles',priced.count()==1 and page.evaluate("SAFE_APP.state.packages.some(p=>p.name==='Mantenimiento anual'&&p.price===480&&p.products.length===0)"))
+ ck('Priced package saved without catalog articles',priced.count()==1 and page.evaluate("SAFE_APP.state.packages.some(p=>p.name==='Mantenimiento anual'&&p.price===480&&p.cost===120&&p.products.length===0)"))
  ck('Package card shows its own price',priced.locator('.package-price').inner_text().startswith('Precio de venta USD 480,00'))
  page.locator('#packageNew').click()
  focus_ready('pkgName')
@@ -111,7 +111,7 @@ with sync_playwright() as pw:
  priced.locator('[data-package-apply]').click()
  page.wait_for_function("()=>SAFE_APP.quote.items.some(x=>x.name==='paquete (Mantenimiento anual)')")
  ck('Package line added at the end without replacing',page.evaluate('SAFE_APP.quote.items.length')==before+1 and page.evaluate("SAFE_APP.quote.items.slice(-1)[0].name")=='paquete (Mantenimiento anual)')
- ck('Package line keeps its price, cost and description',page.evaluate("(()=>{const x=SAFE_APP.quote.items.slice(-1)[0];return Math.abs(SAFE_APP.gross(x.sale)-480)<.01&&Math.abs(SAFE_APP.purchaseGross(x.cost)-120)<.01&&x.quantity===1&&x.category==='other'&&/Visita semestral/.test(x.description)})()"))
+ ck('Package line keeps its price, cost and description',page.evaluate("(()=>{const x=SAFE_APP.quote.items.slice(-1)[0];return Math.abs(SAFE_APP.gross(x.sale)-480)<.01&&Math.abs(x.cost-120)<.01&&Math.abs(SAFE_APP.purchaseGross(x.cost)-146.4)<.01&&x.quantity===1&&x.category==='other'&&/Visita semestral/.test(x.description)})()"))
  # manual commercial package line straight from the quote view
  page.locator('.nav-item[data-view="cotizador"]').click()
  page.locator('#addPackageLine').click()

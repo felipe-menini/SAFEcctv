@@ -27,7 +27,7 @@ line(x1,y1,x2,y2,color=[.86,.89,.94],weight=1){this.cmd(`${rgb(color)} RG ${f(we
 text(s,x,y,size=10,bold=false,color=INK,align='left',italic=false){const str=clean(s),targetX=align==='right'?x-textWidth(str,size,bold):align==='center'?x-textWidth(str,size,bold)/2:x;this.cmd(`${rgb(color)} rg BT /${italic?'F3':bold?'F2':'F1'} ${f(size)} Tf 1 0 0 1 ${f(targetX)} ${f(PAGE_H-y-size)} Tm (${pdfString(str)}) Tj ET`)}
 lines(lines,x,y,{size=9.5,color=INK,bold=false,leading=14}={}){lines.forEach((line,i)=>this.text(line,x,y+i*leading,size,bold,color));return y+lines.length*leading}
 }
-function createPdf({quote:q,settings:s,totals:t,currency='USD',rate=0,fxDate='',fxSource='',fxManual=false,planJpeg=''}){
+function createPdf({quote:q,settings:s,totals:t,currency='USD',rate=0,fxDate='',fxSource='',fxManual=false,planJpeg='',taxDisplay='breakdown'}){
 const isUYU=currency==='UYU',multiplier=isUYU?number(rate):1;if(isUYU&&multiplier<=0)throw Error('Falta la cotización para convertir a pesos.');
 const money=n=>(isUYU?'UYU ':'USD ')+(number(n)*multiplier).toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2});
 const gross=n=>number(n)*(1+number(s.saleTaxRate)/100);
@@ -65,13 +65,13 @@ if(p.top+180+(t.discount>0?42:0)+(t.serviceVat>0.001?21:0)>774){page(false);p.te
 // El total se distribuye a ancho completo, con una línea azul decorativa a la izquierda.
 let sy=p.top+19;const labelX=PAGE_W-233,valueX=RIGHT-7;
 function sumLine(name,value,strong=false,color=INK){p.text(name,labelX,sy,strong?10:9,strong,color);p.text(value,valueX,sy,strong?10:9,strong,color,'right');sy+=21;}
-if(t.discount>0){sumLine('Total previo',money(t.beforeDiscount));sumLine('Descuento','- '+money(t.discount),false,[.67,.24,.27]);}sumLine('Subtotal sin IVA',money(t.subtotal));sumLine('IVA equipamiento ('+number(s.saleTaxRate)+'%)',money(t.goodsVat));if(t.serviceVat>0.001)sumLine('IVA servicios ('+number(s.serviceTaxRate)+'%)',money(t.serviceVat));
+if(t.discount>0){sumLine('Total previo',money(t.beforeDiscount));sumLine('Descuento','- '+money(t.discount),false,[.67,.24,.27]);}if(taxDisplay!=='total'){sumLine('Subtotal sin IVA',money(t.subtotal));sumLine('IVA equipamiento ('+number(s.saleTaxRate)+'%)',money(t.goodsVat));if(t.serviceVat>0.001)sumLine('IVA servicios ('+number(s.serviceTaxRate)+'%)',money(t.serviceVat));}
 sy+=8;
 p.rect(M,sy,PAGE_W-M*2,72,[.957,.976,.998]);
 p.rect(M,sy,5,72,BLUE);
 p.line(M+19,sy+63,RIGHT-18,sy+63,[.86,.91,.96],.55);
 p.text('TOTAL DEL PRESUPUESTO',M+22,sy+17,10,true,INK);
-p.text('IMPORTE FINAL EN '+currency+' · IVA DESGLOSADO',M+22,sy+36,7.4,false,GREY);
+p.text('IMPORTE FINAL EN '+currency+(taxDisplay==='total'?' · IVA INCLUIDO':' · IVA DESGLOSADO'),M+22,sy+36,7.4,false,GREY);
 p.text(money(t.customerTotal),RIGHT-19,sy+14,20,true,BLUE,'right');
 p.top=sy+95;
 if(isUYU){if(p.top+32>772)page(false);p.text('Conversión: 1 USD = '+number(rate).toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})+' UYU · Dólar VENTA',M+6,p.top,8,true,INK);p.top+=13;p.text((fxManual?'Cotización MANUAL declarada':'Referencia BROU vía DolarAPI')+' · Actualización: '+rateDate(),M+6,p.top,7.6,false,GREY);p.top+=20;}
