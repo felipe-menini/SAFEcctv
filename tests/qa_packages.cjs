@@ -16,6 +16,8 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     const cards=()=>page.locator('#packageCards .tech-package');
     const stored=()=>page.evaluate(()=>SAFE_APP.state.packages.map(x=>({id:x.id,deleted:!!x.deleted})));
     const confirm=async()=>{await page.locator('#safeConfirmAccept').click();await page.waitForFunction(()=>document.getElementById('safeConfirmBackdrop').hidden)};
+    // A.modal enfoca el primer campo 20 ms despues de abrir: esperar ese foco evita que fill escriba en otro campo.
+    const focusReady=id=>page.waitForFunction(wanted=>document.activeElement&&document.activeElement.id===wanted,id);
     const open=await page.evaluate(()=>SAFE_APP.showView('paquetes'));
     void open;
     await page.locator('.nav-item[data-view="paquetes"]').click();
@@ -28,6 +30,7 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
 
     // Crear desde cero
     await page.locator('#packageNew').click();
+    await focusReady('pkgName');
     assert.equal(await page.locator('#pkgName').inputValue(),'');
     assert.equal(await page.locator('.package-edit-row').count(),1,'el editor nuevo arranca con un artículo del catálogo');
     await page.locator('#pkgName').fill('Local comercial 6 cámaras');
@@ -43,12 +46,14 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
 
     // Nombre obligatorio
     await page.locator('#packageNew').click();
+    await focusReady('pkgName');
     await page.locator('#pkgName').fill('   ');
     await page.locator('#modalConfirm').click();
     assert.equal(await page.locator('#modalBackdrop').isVisible(),true,'sin nombre el editor no cierra');
     await page.locator('#modalClose').click();
 
     // Crear desde el presupuesto (flujo existente)
+    const baseId=await page.evaluate(()=>SAFE_APP.state.catalog[0].id);
     await page.evaluate(()=>{const p=SAFE_APP.state.catalog[0];SAFE_APP.quote.items=[{id:SAFE_APP.makeId(),productId:p.id,name:p.name,description:p.description,category:p.category,quantity:2,cost:p.cost,sourceCost:p.cost,sourceCurrency:p.currency||'USD',sourceTaxIncluded:!!p.taxIncluded,sale:Number(p.salePrice)||SAFE_APP.suggestSale(p.cost)}]});
     await page.locator('.nav-item[data-view="paquetes"]').click();
     await page.locator('#packageNewName').fill('Plantilla desde presupuesto');
@@ -66,8 +71,14 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     assert.equal(await page.evaluate(()=>SAFE_APP.state.packages.find(x=>x.id==='safe-ip-4').products[0].qty),2,'la edición de una plantilla queda persistida como reemplazo');
     assert.equal(await edited.locator('.tech-pill',{hasText:'EDITADO'}).count(),1,'una plantilla editada se marca como EDITADO');
     assert.equal(await edited.locator('[data-package-reset]').count(),1,'una plantilla editada ofrece Restaurar original');
-    await edited.locator('[data-package-apply]').click();await confirm();
-    assert.equal(await page.evaluate(()=>SAFE_APP.quote.items[0].quantity),2,'el paquete editado se aplica con la cantidad guardada');
+    // Agregar un paquete suma al final sin borrar lo cargado
+    await edited.locator('[data-package-apply]').click();
+    await page.waitForFunction(()=>SAFE_APP.quote.items.some(x=>x.productId==='ip-tiandy'));
+    const applied=await page.evaluate(()=>SAFE_APP.quote.items.map(x=>({productId:x.productId,qty:x.quantity})));
+    assert.equal(applied.length,2,'el paquete se suma a los equipos que ya estaban en el presupuesto');
+    assert.equal(applied[0].productId,baseId,'lo cargado antes del paquete queda intacto y en su lugar');
+    assert.equal(applied[1].productId,'ip-tiandy');
+    assert.equal(applied[1].qty,2,'el paquete editado se agrega con la cantidad guardada');
     await page.evaluate(()=>{SAFE_APP.quote.items=[]});
     await page.locator('.nav-item[data-view="paquetes"]').click();
     await page.locator('#packageCards .tech-package',{hasText:'Tiandy editado QA'}).locator('[data-package-reset]').click();await confirm();
@@ -110,7 +121,62 @@ html=html.replace('<head>','<head><script>(()=>{let store={};Object.defineProper
     assert.equal(await page.evaluate(()=>SAFE_APP.quote.items.length),1);
     assert.equal(await page.evaluate(()=>SAFE_APP.quote.items[0].quantity),1,'tras restaurar la plantilla vuelve la cantidad original');
 
+    // Paquete con precio propio, sin artículos del catálogo
+    await page.locator('.nav-item[data-view="paquetes"]').click();
+    await page.locator('#packageNew').click();
+    await focusReady('pkgName');
+    await page.locator('[data-pkg-remove="0"]').click();
+    await page.locator('#pkgName').fill('Mantenimiento anual');
+    await page.locator('#pkgType').selectOption('Personalizado');
+    await page.locator('#pkgDescription').fill('Visita semestral, limpieza de lentes y ajuste de encuadres.');
+    await page.locator('#pkgPrice').fill('480');
+    await page.locator('#pkgCost').fill('120');
+    await page.locator('#modalConfirm').click();
+    const priced=page.locator('#packageCards .tech-package',{hasText:'Mantenimiento anual'});
+    assert.equal(await priced.count(),1,'un paquete sin artículos del catálogo se guarda con su precio propio');
+    assert.match(await priced.locator('.package-price').textContent(),/Precio de venta USD 480,00/,'la tarjeta muestra el precio propio');
+    assert.match(await priced.locator('.package-price').textContent(),/costo estimado USD 120,00/,'la tarjeta muestra el costo estimado opcional');
+    assert.match(await priced.locator('.package-price + small').textContent(),/Sin artículos del catálogo/);
+
+    // Sin precio y sin artículos no se guarda
+    await page.locator('#packageNew').click();
+    await focusReady('pkgName');
+    await page.locator('[data-pkg-remove="0"]').click();
+    await page.locator('#pkgName').fill('Paquete vacío QA');
+    await page.locator('#modalConfirm').click();
+    assert.equal(await page.locator('#modalBackdrop').isVisible(),true,'sin precio ni artículos el editor no cierra');
+    await page.locator('#modalClose').click();
+
+    // El paquete con precio entra como una línea al final y no reemplaza lo cargado
+    await page.evaluate(()=>{SAFE_APP.quote.items=[];SAFE_APP.addProduct(SAFE_APP.state.catalog[0].id)});
+    const before=await page.evaluate(()=>SAFE_APP.quote.items.length);
+    await priced.locator('[data-package-apply]').click();
+    await page.waitForFunction(()=>SAFE_APP.quote.items.some(x=>x.name==='paquete (Mantenimiento anual)'));
+    const line=await page.evaluate(()=>{const items=SAFE_APP.quote.items,x=items.find(i=>i.name==='paquete (Mantenimiento anual)');return{total:items.length,index:items.indexOf(x),productId:x.productId,category:x.category,quantity:x.quantity,description:x.description,shown:SAFE_APP.gross(x.sale)}});
+    assert.equal(line.total,before+1,'el paquete se suma al presupuesto en vez de reemplazarlo');
+    assert.equal(line.index,before,'la línea del paquete se agrega después de lo que ya estaba cargado');
+    assert.equal(line.productId,'','la línea del paquete no depende de un artículo del catálogo');
+    assert.equal(line.category,'other');
+    assert.equal(line.quantity,1);
+    assert.match(line.description,/Visita semestral/);
+    assert.ok(Math.abs(line.shown-480)<0.01,'el precio del paquete se respeta tal como se cargó');
+
+    // Línea de paquete manual desde el cotizador
+    await page.locator('.nav-item[data-view="cotizador"]').click();
+    await page.locator('#addPackageLine').click();
+    await focusReady('pkgLineTitle');
+    await page.locator('#pkgLineTitle').fill('Instalación express');
+    await page.locator('#pkgLineDesc').fill('Mano de obra de una jornada para dos cámaras.');
+    await page.locator('#pkgLinePrice').fill('350');
+    await page.locator('#pkgLineCost').fill('90');
+    await page.locator('#modalConfirm').click();
+    await page.waitForFunction(()=>SAFE_APP.quote.items.some(x=>x.name==='paquete (Instalación express)'));
+    const manual=page.locator('#quoteItems tr',{hasText:'paquete (Instalación express)'});
+    assert.equal(await manual.count(),1,'la línea manual aparece en la tabla del presupuesto');
+    assert.equal(await manual.locator('input[data-line-field="sale"]').inputValue(),'350.00','el precio de venta se muestra como precio final');
+    assert.ok(await page.evaluate(()=>SAFE_APP.quote.items.length)>1,'la línea manual se suma a lo que ya estaba cargado');
+
     assert.deepEqual(errors,[]);
-    console.log('PASS paquetes comerciales: alta desde cero, alta desde presupuesto, edición, restaurar original, baja de predeterminados y propios, restaurar predeterminados, aplicar');
+    console.log('PASS paquetes comerciales: alta desde cero, con precio propio sin artículos, alta desde presupuesto, edición, restaurar original, baja de predeterminados y propios, restaurar predeterminados, agregar sin reemplazar y línea manual desde el cotizador');
   }finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

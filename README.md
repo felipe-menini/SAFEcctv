@@ -49,8 +49,9 @@ Desarrollo: `planner/` contiene las fuentes del editor; `planner/embedded-bridge
 
 - Cinco paquetes de ejemplo para empezar más rápido.
 - Podés crear, editar y reutilizar tus propios paquetes, y editar los predeterminados (con opción de restaurarlos).
+- Un paquete puede llevar **precio propio** (venta obligatoria y costo estimado opcional) además de, o en lugar de, artículos del catálogo; al agregarlo entra como una línea `paquete (nombre)`.
 - La aplicación usa el precio de venta sugerido del catálogo al cargar cada kit.
-- Antes de reemplazar productos existentes se solicita confirmación.
+- **Agregar paquete** suma al final del presupuesto: nunca reemplaza lo que ya estaba cargado. También podés cargar un paquete manual con **+ Agregar paquete** desde el Cotizador.
 
 ### 3. Grabación y discos
 

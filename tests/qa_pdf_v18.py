@@ -1,10 +1,10 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-import re,base64
+import re,base64,os
 root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text();html=re.sub(r'<link rel="stylesheet" href="styles.css"\s*/>','',html);html=re.sub(r'<script src="(?:assets/logo-data.js|pdf.js|app.js|technical.js)"></script>','',html)
 with sync_playwright() as pw:
- browser=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+ browser=pw.chromium.launch(executable_path=os.environ.get('SAFE_CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
  pg=browser.new_page();pg.set_content(html);pg.add_style_tag(content=(root/'styles.css').read_text())
  pg.evaluate('''()=>{let d={};Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>d[k]??null,setItem:(k,v)=>d[k]=v,removeItem:k=>delete d[k]}})}''')
  for path in ['assets/logo-data.js','pdf.js','app.js','technical.js']:pg.add_script_tag(content=(root/path).read_text())

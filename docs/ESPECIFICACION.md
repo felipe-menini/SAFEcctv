@@ -20,9 +20,15 @@ La ficha del sitio y las fichas por cámara son parte del borrador y del presupu
 
 ### Paquetes comerciales
 
-Cinco paquetes predeterminados editables y paquetes personalizados. Cada entrada lleva nombre, tipo, descripción y lista de productos con cantidad. Las modificaciones de predefinidos se guardan como sustituciones en `state.packages` con el mismo identificador; la acción **Restaurar original** elimina esa sustitución. El guardado de plantillas NO altera cotizaciones existentes y la aplicación del paquete pregunta antes de reemplazar artículos.
+Cinco paquetes predeterminados editables y paquetes personalizados. Cada entrada lleva nombre, tipo, descripción y lista de productos con cantidad. Las modificaciones de predefinidos se guardan como sustituciones en `state.packages` con el mismo identificador; la acción **Restaurar original** elimina esa sustitución. El guardado de plantillas NO altera cotizaciones existentes.
 
 Alta y baja de paquetes: **+ Nuevo paquete** abre el mismo editor para armar una plantilla desde cero (nombre, tipo, descripción y artículos del catálogo, sin depender del presupuesto actual), con un máximo de 60 paquetes personalizados; el alta **desde los equipos del presupuesto** se conserva. **Eliminar** está disponible en todos los paquetes: los personalizados se quitan del estado y los predeterminados se registran como baja `{id,deleted:true}` en `state.packages`, porque la plantilla vive en el código. Mientras exista alguna baja, el encabezado muestra **Restaurar predeterminados** para volver al listado de fábrica sin tocar los paquetes propios.
+
+Paquetes con precio propio: además de los artículos del catálogo, una plantilla puede llevar `price` (precio de venta obligatorio de este tipo de paquete) y `cost` (costo estimado opcional). La validación exige nombre y al menos un artículo del catálogo o un precio; un paquete sin artículos se muestra con su precio en la tarjeta y se agrega al presupuesto como una sola línea comercial `paquete (nombre)` con la descripción de la plantilla. Si la plantilla combina artículos y precio, primero entra la línea del paquete y después los equipos. Los valores se cargan como precio final y se guardan netos para el IVA, igual que el resto de los ítems.
+
+Aplicar un paquete («Agregar paquete») SUMA al presupuesto actual, nunca reemplaza: no pide confirmación destructiva, respeta lo que ya estaba cargado y agrega las líneas al final del listado, de modo que todo lo que se cargue después quede listado debajo.
+
+Línea manual desde el Cotizador: el botón **+ Agregar paquete** del panel de equipos abre un formulario corto (título, descripción, precio de venta y costo opcional) y crea la misma línea `paquete (título)` sin pasar por la plantilla ni por el catálogo.
 
 ### Grabación y discos
 
