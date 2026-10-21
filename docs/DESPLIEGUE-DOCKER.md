@@ -26,7 +26,7 @@ Abra `http://IP_DEL_SERVIDOR:8787` **solo después** de configurar el acceso LAN
 | `fmenini` | Administración completa, información comercial y todos los planos técnicos. |
 | `smenini` | Solo diseño CCTV y sus planos propios. No puede leer catálogo, precios comerciales, proveedores, presupuestos ni imágenes privadas de administración. |
 
-Las contraseñas iniciales se suministran en `SAFE_ADMIN_PASSWORD` y `SAFE_CCTV_PASSWORD`, **no en el código**. Se aplican únicamente cuando no existen usuarios. El servidor rechaza inicializar una base vacía sin ambas variables. En esta computadora se dejó un `.env` privado ignorado por Git; no se incluye al clonar. Los valores iniciales solicitados son débiles: cámbielos al primer acceso desde **Cambiar contraseña** (mínimo 12 caracteres).
+Las contraseñas iniciales se suministran en `SAFE_ADMIN_PASSWORD` y `SAFE_CCTV_PASSWORD`, **no en el código**. Se aplican únicamente cuando no existen usuarios. El servidor rechaza inicializar una base vacía sin ambas variables. En esta computadora se dejó un `.env` privado ignorado por Git; no se incluye al clonar. Los valores iniciales solicitados son débiles: cámbielos al primer acceso desde **Cambiar contraseña** (mínimo 15 caracteres o PIN de 6+ dígitos).
 
 También puede rotar una contraseña sin navegador:
 

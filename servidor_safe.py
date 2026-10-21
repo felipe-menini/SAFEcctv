@@ -83,7 +83,7 @@ class Store:
 
     def password(self, name, password):
         if not access.password_valid(password):
-            raise ValueError('Use al menos 15 caracteres y como máximo 1024 bytes UTF-8.')
+            raise ValueError('Use al menos 15 caracteres, o un PIN de 6+ dígitos, y como máximo 1024 bytes UTF-8.')
         with self.connect() as db:
             salt = secrets.token_hex(16)
             if not db.execute('UPDATE users SET salt=?,hash=?,must_change=0 WHERE name=?', (salt, password_hash(password,salt), name)).rowcount:
@@ -525,7 +525,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise Problem(422,'Debe conservar al menos un administrador activo')
             password=data.get('password')
             if creating or password is not None:
-                if not access.password_valid(password): raise Problem(422,'Use al menos 15 caracteres y como máximo 1024 bytes UTF-8')
+                if not access.password_valid(password): raise Problem(422,'Use al menos 15 caracteres, o un PIN de 6+ dígitos, y como máximo 1024 bytes UTF-8')
                 salt=secrets.token_hex(16); hashed=password_hash(password,salt)
             if creating:
                 db.execute('INSERT INTO users(name,role,salt,hash,active,modules,must_change) VALUES(?,?,?,?,?,?,1)',(name,role,salt,hashed,int(active),json.dumps(granted)))
@@ -598,7 +598,7 @@ def main():
     store=Store(args.data_dir,bootstrap)
     if args.command=='password':
         if not args.argument: parser.error('Indique usuario')
-        password=getpass.getpass('Nueva contraseÃ±a (12+ caracteres): ')
+        password=getpass.getpass('Nueva contraseña (15+ caracteres o PIN 6+ dígitos): ')
         if password!=getpass.getpass('Repetir contraseÃ±a: '): parser.error('Las contraseÃ±as no coinciden')
         store.password(args.argument,password);print('ContraseÃ±a actualizada y sesiones revocadas.');return
     if args.command=='backup':

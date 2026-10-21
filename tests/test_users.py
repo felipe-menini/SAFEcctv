@@ -81,6 +81,9 @@ class UserModuleTests(ServerTests):
         self.assertEqual(self.request('/api/users/alice', {'active':False,'current':'wrong'},auth=self.admin)[0],403)
         for password in ('short', 'x'*1025):
             self.assertEqual(self.request('/api/users/alice', {'password':password,'current':self.secret},auth=self.admin)[0],422)
+        # PIN numérico: 6 dígitos admitidos; 5 dígitos siguen rechazados.
+        self.assertEqual(self.request('/api/users/alice', {'password':'123456','current':self.secret},auth=self.admin)[0],200)
+        self.assertEqual(self.request('/api/users/alice', {'password':'12345','current':self.secret},auth=self.admin)[0],422)
         for _ in range(8): self.request('/api/users/alice', {'active':False,'current':'wrong'},auth=self.admin)
         self.assertEqual(self.request('/api/users/alice', {'active':False,'current':self.secret},auth=self.admin)[0],429)
 

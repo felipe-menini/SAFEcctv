@@ -3,7 +3,7 @@
 ## Uso administrativo
 
 1. Ingrese como **fmenini**. En el primer inicio tras esta actualización complete el **cambio obligatorio** de contraseña con su contraseña actual. Luego vuelva a ingresar.
-2. Abra **Usuarios y módulos** en la barra superior. Cree una cuenta con nombre único, módulos y contraseña temporal de **15 caracteres o más**. Entréguela por un canal privado, nunca en registros o capturas.
+2. Abra **Usuarios y módulos** en la barra superior. Cree una cuenta con nombre único, módulos y contraseña temporal de **15 caracteres o más**, o un **PIN numérico de 6 o más dígitos**. Entréguela por un canal privado, nunca en registros o capturas.
 3. El usuario debe cambiar esa contraseña antes de recibir workspace, scripts comerciales, planos o imágenes. Una cuenta sin módulos no puede ingresar.
 4. Para modificar una cuenta selecciónela, marque sus módulos y confirme con **su propia contraseña administrativa actual**. Deje la contraseña temporal vacía para conservar la existente. Para restablecerla, ingrese una nueva temporal.
 5. Desmarque **Cuenta activa** para suspender el acceso. No se borran cuentas ni planos; reactivarla conserva los datos. Cada modificación de permisos, estado, rol o contraseña revoca TODAS las sesiones de la cuenta afectada.
@@ -44,7 +44,7 @@ Las fotografías nuevas se asocian al módulo que las sube. Lecturas y HEAD de `
 
 ## Límites de seguridad
 
-PBKDF2-HMAC-SHA256 mantiene **600.000 iteraciones** con sal aleatoria por contraseña. Contraseñas nuevas: mínimo 15 caracteres, máximo 1024 **bytes UTF-8**, sin truncamiento; no se guarda ni devuelve texto plano. Credenciales fallidas usan respuestas genéricas y hash dummy para usuario inexistente. Hay límites de intentos de login, reautenticación y escrituras; contraseñas, cuerpos y tokens no se registran. Los formularios administrativos no recuperan ni muestran hashes.
+PBKDF2-HMAC-SHA256 mantiene **600.000 iteraciones** con sal aleatoria por contraseña. Contraseñas nuevas: mínimo 15 caracteres —o un PIN numérico de 6 o más dígitos—, máximo 1024 **bytes UTF-8**, sin truncamiento; no se guarda ni devuelve texto plano. Credenciales fallidas usan respuestas genéricas y hash dummy para usuario inexistente. Hay límites de intentos de login, reautenticación y escrituras; contraseñas, cuerpos y tokens no se registran. Los formularios administrativos no recuperan ni muestran hashes.
 
 Sesiones opacas de 8 horas, cookie HttpOnly/SameSite=Strict, CSRF y validación de Origin en escrituras. Cambio de contraseña, estado o permisos revoca sesiones; logout elimina la sesión actual. La reautenticación administrativa se transmite solo en POST; para operaciones sensibles fuera de localhost se exige configurar HTTPS (`SAFE_SECURE_COOKIE=1` detrás de terminación TLS confiable). **HTTP es solo para desarrollo local.** No hay MFA implementado ni se promete seguridad absoluta. Proteja el equipo, el volumen/ZIP y el acceso administrativo al proceso y al proxy TLS.
 

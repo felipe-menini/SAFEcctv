@@ -41,7 +41,10 @@ def info(user):
 
 
 def password_valid(value):
-    return isinstance(value,str) and 15 <= len(value) and len(value.encode('utf-8')) <= 1024
+    if not isinstance(value,str) or len(value.encode('utf-8')) > 1024:
+        return False
+    # PIN numérico de 6+ dígitos o contraseña convencional de 15+ caracteres.
+    return (value.isdecimal() and len(value) >= 6) or len(value) >= 15
 
 
 def password_input(value):
