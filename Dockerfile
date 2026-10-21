@@ -2,7 +2,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && groupadd --gid 10001 safe && useradd --uid 10001 --gid safe --no-create-home safe && mkdir /data && chown safe:safe /data
-COPY servidor_safe.py index.html app.js technical.js pdf.js theme.js planner-document.js planner-integration.js styles.css dark-theme.css planner-integration.css login.html login.js auth.css safe-server.js cctv.html cctv.js ./
+COPY safe_access.py access.js password.html password.js users.html users.js servidor_safe.py index.html app.js technical.js pdf.js theme.js planner-document.js planner-integration.js styles.css dark-theme.css planner-integration.css login.html login.js auth.css safe-server.js cctv.html cctv.js ./
 COPY assets/ ./assets/
 ENV SAFE_HOST=0.0.0.0 SAFE_PORT=8787 SAFE_DATA_DIR=/data/state PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 USER safe

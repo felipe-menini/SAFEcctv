@@ -18,6 +18,8 @@ class ServerTests(unittest.TestCase):
         self.secret = 'temporary-test-' + safe.secrets.token_urlsafe(16)
         self.server = safe.create_server('127.0.0.1', 0, Path(self.tmp.name),
                                          {'fmenini': self.secret, 'smenini': self.secret})
+        # Fixture represents accounts that already completed mandatory initial enrollment.
+        with self.server.store.connect() as db: db.execute('UPDATE users SET must_change=0')
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.port = self.server.server_address[1]

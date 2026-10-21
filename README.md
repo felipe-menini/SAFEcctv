@@ -218,3 +218,7 @@ Los PDF comerciales no contienen costo del proveedor. Los JSON de respaldos sí 
 - Los botones + y − mantienen el centro de la vista. El botón ⌖ encuadra todos los objetos, incluidos los que quedan fuera de la vista inicial.
 - Seleccioná una casa o terreno para elegir relleno, borde e intensidad. El estilo se guarda en el presupuesto, respaldo JSON, plano SVG e informe. Restaurar color original vuelve a los valores anteriores.
 - La navegación no altera posiciones, dimensiones ni precios. El informe y SVG encuadran el plano completo, aunque dibujes lejos del origen.
+
+### Usuarios y permisos
+
+Guía administrativa, contrato por módulo, migración y pruebas: [Usuarios y permisos](docs/USUARIOS-Y-PERMISOS.md).

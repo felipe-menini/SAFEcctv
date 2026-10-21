@@ -21,6 +21,9 @@ import tempfile
 import time
 from urllib.parse import parse_qs, unquote, urlsplit
 import zipfile
+import safe_access as access
+
+MODULES = access.MODULES
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 ROOT = Path(__file__).resolve().parent
@@ -63,6 +66,7 @@ class Store:
                 for name, role in [('fmenini', 'admin'), ('smenini', 'cctv')]:
                     salt = secrets.token_hex(16)
                     db.execute('INSERT INTO users VALUES(?,?,?,?)', (name, role, salt, password_hash(bootstrap[name], salt)))
+            access.migrate(db)
             db.execute('INSERT OR IGNORE INTO workspace VALUES(1,0,?)', (json.dumps({'settings':{}, 'catalog':[], 'saved':[], 'packages':[], 'suppliers':[], 'draft':None}),))
 
     @contextmanager
@@ -78,11 +82,11 @@ class Store:
             db.close()
 
     def password(self, name, password):
-        if len(password) < 12:
-            raise ValueError('Use al menos 12 caracteres para la contraseÃ±a nueva.')
+        if not access.password_valid(password):
+            raise ValueError('Use al menos 15 caracteres y como máximo 1024 bytes UTF-8.')
         with self.connect() as db:
             salt = secrets.token_hex(16)
-            if not db.execute('UPDATE users SET salt=?,hash=? WHERE name=?', (salt, password_hash(password,salt), name)).rowcount:
+            if not db.execute('UPDATE users SET salt=?,hash=?,must_change=0 WHERE name=?', (salt, password_hash(password,salt), name)).rowcount:
                 raise ValueError('Usuario desconocido')
             db.execute('DELETE FROM sessions WHERE username=?', (name,))
 
@@ -130,9 +134,7 @@ class Store:
         return '/media/' + digest
 
     def media_access(self, digest, owner, db):
-        user = db.execute('SELECT role FROM users WHERE name=?', (owner,)).fetchone()
-        return bool(db.execute('SELECT 1 FROM media WHERE hash=?', (digest,)).fetchone() and user and
-                    (user['role']=='admin' or db.execute('SELECT 1 FROM media_acl WHERE hash=? AND owner=?',(digest,owner)).fetchone()))
+        return access.media_access(self,digest,owner,db)
 
     def dehydrate(self, value, owner, db, depth=0):
         if depth > 70:
@@ -270,9 +272,9 @@ def restore_backup(archive_path, directory):
         os.replace(stage,directory)
 
 
-PUBLIC={'/login':'login.html','/login.js':'login.js','/auth.css':'auth.css'}
+PUBLIC={'/password':'password.html','/password.js':'password.js','/login':'login.html','/login.js':'login.js','/auth.css':'auth.css'}
 ADMIN_FILES={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/technical.js':'technical.js','/pdf.js':'pdf.js','/planner-integration.js':'planner-integration.js','/styles.css':'styles.css','/dark-theme.css':'dark-theme.css','/planner-integration.css':'planner-integration.css'}
-SHARED={'/cctv':'cctv.html','/cctv.js':'cctv.js','/safe-server.js':'safe-server.js','/theme.js':'theme.js','/planner-document.js':'planner-document.js','/auth.css':'auth.css'}
+SHARED={'/access.js':'access.js','/cctv':'cctv.html','/cctv.js':'cctv.js','/safe-server.js':'safe-server.js','/theme.js':'theme.js','/planner-document.js':'planner-document.js','/auth.css':'auth.css'}
 # Only immutable presentation assets, never directory listings or arbitrary source files.
 for file in (ROOT/'assets').glob('*'):
     if file.is_file() and file.suffix.lower() in ('.png','.jpg','.jpeg','.webp','.svg','.ico','.js'):
@@ -324,7 +326,7 @@ class Handler(BaseHTTPRequestHandler):
         if not token: return None
         digest=hashlib.sha256(token.value.encode()).hexdigest()
         with self.server.store.connect() as db:
-            return db.execute('SELECT u.name,u.role,s.csrf FROM sessions s JOIN users u ON u.name=s.username WHERE s.token=? AND s.expires>?',(digest,time.time())).fetchone()
+            return db.execute('SELECT u.*,s.csrf FROM sessions s JOIN users u ON u.name=s.username WHERE s.token=? AND s.expires>? AND u.active=1',(digest,time.time())).fetchone()
 
     def origin(self):
         origin=self.headers.get('Origin')
@@ -361,27 +363,35 @@ class Handler(BaseHTTPRequestHandler):
             raise Problem(401,'Inicie sesiÃ³n')
         name,role=user['name'],user['role']
         admin=role=='admin'
+        allowed=set(access.modules(user))
         if self.command=='POST':
+            self.throttle('write:'+name,180,60)
             self.origin()
             if not secrets.compare_digest(self.headers.get('X-CSRF-Token',''),user['csrf']): raise Problem(403,'Token CSRF invÃ¡lido')
         if path=='/api/me' and self.command in ('GET','HEAD'):
-            return self.reply(200,{'username':name,'role':role,'csrf':user['csrf']})
-        if path=='/session.js' and self.command in ('GET','HEAD'):
-            boot={'username':name,'role':role,'csrf':user['csrf']}
-            if admin: boot.update(self.server.store.workspace())
-            raw=json.dumps(boot,ensure_ascii=False).replace('<','\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
-            return self.reply(200,'window.__SAFE_BOOT='+raw+';', 'text/javascript; charset=utf-8')
+            return self.reply(200,dict(access.info(user),csrf=user['csrf']))
         if path=='/api/logout' and self.command=='POST':
             with self.server.store.connect() as db: db.execute('DELETE FROM sessions WHERE username=? AND csrf=?',(name,user['csrf']))
             return self.reply(200,{'ok':True},headers={'Set-Cookie':self.cookie('',0)})
         if path=='/api/password' and self.command=='POST':
             data=self.json_body()
-            with self.server.store.connect() as db:
-                account=db.execute('SELECT * FROM users WHERE name=?',(name,)).fetchone()
-                if not secrets.compare_digest(password_hash(str(data.get('current','')),account['salt']),account['hash']): raise Problem(403,'ContraseÃ±a actual incorrecta')
-            try: self.server.store.password(name,str(data.get('password','')))
+            self.reauthenticate(user,data.get('current'))
+            try: self.server.store.password(name,data.get('password'))
             except ValueError as e: raise Problem(422,str(e))
             return self.reply(200,{'ok':True},headers={'Set-Cookie':self.cookie('',0)})
+        if user['must_change']:
+            raise Problem(403,'Debe cambiar la contraseña antes de acceder a los datos')
+        if path in ('/api/users','/users','/users.js') or path.startswith('/api/users/'):
+            if not admin: raise Problem(403,'Se requiere acceso administrador')
+            if path in ('/users','/users.js') and self.command in ('GET','HEAD'):
+                return self.static('users.html' if path=='/users' else 'users.js')
+            return self.users(path,user)
+        if path=='/session.js' and self.command in ('GET','HEAD'):
+            boot=dict(access.info(user),csrf=user['csrf'])
+            if admin or allowed & access.WORKSPACE_MODULES: boot.update(access.workspace(self.server.store,user))
+            elif 'ayuda' in allowed: boot.update(revision=0,workspace={})
+            raw=json.dumps(boot,ensure_ascii=False).replace('<','\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+            return self.reply(200,'window.__SAFE_BOOT='+raw+';', 'text/javascript; charset=utf-8')
         if path.startswith('/media/') and self.command in ('GET','HEAD'):
             digest=path[7:]
             if not re.fullmatch('[a-f0-9]{64}',digest): raise Problem(404,'Imagen desconocida')
@@ -391,19 +401,33 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200,(self.server.store.media_dir/digest).read_bytes(),mime)
         if path=='/api/media' and self.command=='POST':
             data=self.json_body()
-            if not isinstance(data.get('image'),str): raise Problem(422,'Imagen invÃ¡lida')
-            with self.server.store.connect() as db: url=self.server.store.image(data['image'],name,db)
+            module=data.get('module','plano')
+            if module not in allowed: raise Problem(403,'Módulo no autorizado')
+            if not isinstance(data.get('image'),str): raise Problem(422,'Imagen inválida')
+            with self.server.store.connect() as db:
+                url=self.server.store.image(data['image'],name,db)
+                db.execute('INSERT OR IGNORE INTO media_modules VALUES(?,?,?)',(url[7:],name,module))
             return self.reply(200,{'url':url})
         if path=='/api/plans' or path.startswith('/api/plans/'):
+            if 'plano' not in allowed: raise Problem(403,'Módulo no autorizado')
             return self.plans(path,name,admin)
-        if path in ADMIN_FILES or path.startswith(('/api/workspace','/api/import','/api/export','/api/catalogo','/api/proveedores','/api/presupuestos','/api/guardar','/api/eliminar','/api/pdf','/api/status')):
-            if not admin: raise Problem(403,'Se requiere acceso administrador')
-        if path in ADMIN_FILES and self.command in ('GET','HEAD'): return self.static(ADMIN_FILES[path])
+        if path in ('/cctv','/cctv.js','/planner-document.js') and 'plano' not in allowed:
+            raise Problem(403,'Módulo no autorizado')
+        if path in ADMIN_FILES:
+            if not admin and not allowed & access.WORKSPACE_MODULES and 'ayuda' not in allowed:
+                raise Problem(403,'Módulo no autorizado')
+            if self.command in ('GET','HEAD'): return self.static(ADMIN_FILES[path])
         if path in SHARED and self.command in ('GET','HEAD'): return self.static(SHARED[path])
+        endpoint_modules={'/api/catalogo':'catalogo','/api/proveedores':'proveedores','/api/presupuestos':'presupuestos','/api/pdf':'presupuestos'}
+        required=endpoint_modules.get(path)
+        if required and required not in allowed: raise Problem(403,'Módulo no autorizado')
+        if path in ('/api/import','/api/export','/api/guardar','/api/eliminar') and not admin:
+            raise Problem(403,'Se requiere acceso administrador')
         if path=='/api/workspace':
-            if self.command in ('GET','HEAD'): return self.reply(200,self.server.store.workspace())
+            if not admin and not allowed & access.WORKSPACE_MODULES: raise Problem(403,'Módulo no autorizado')
+            if self.command in ('GET','HEAD'): return self.reply(200,access.workspace(self.server.store,user))
             data=self.json_body()
-            return self.reply(200,self.server.store.save_workspace(data.get('workspace'),data.get('revision'),name))
+            return self.reply(200,access.save_workspace(self.server.store,user,data.get('workspace'),data.get('revision'),Problem))
         if path=='/api/import' and self.command=='POST':
             data=self.json_body(); backup=data.get('backup',{})
             if backup.get('format')!='safe-security-cotizador-v1': raise Problem(422,'Formato incompatible')
@@ -415,7 +439,7 @@ class Handler(BaseHTTPRequestHandler):
         legacy={'/api/catalogo':('catalog','products'),'/api/proveedores':('suppliers','suppliers'),'/api/presupuestos':('saved','quotes')}
         if path in legacy and self.command in ('GET','HEAD'):
             key,out=legacy[path]
-            return self.reply(200,{out:self.server.store.workspace()['workspace'][key]})
+            return self.reply(200,{out:access.workspace(self.server.store,user)['workspace'][key]})
         if path in legacy or path in ('/api/guardar','/api/eliminar'):
             raise Problem(410,'Use workspace con revisiÃ³n para evitar pÃ©rdida de cambios')
         if path=='/api/pdf' and self.command=='POST':
@@ -424,7 +448,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError: raise Problem(422,'PDF invÃ¡lido')
             key=str(data.get('id',''))
             if not re.fullmatch(r'[\w-]{1,120}',key) or data.get('currency') not in ('USD','UYU') or not pdf.startswith(b'%PDF-') or len(pdf)>12*1024*1024: raise Problem(422,'PDF invÃ¡lido')
-            with self.server.store.connect() as db: db.execute('INSERT OR REPLACE INTO pdfs VALUES(?,?)',(key+'-'+data['currency'],pdf))
+            with self.server.store.connect() as db: db.execute('INSERT OR REPLACE INTO pdfs VALUES(?,?)',((key if admin else name+':'+key)+'-'+data['currency'],pdf))
             return self.reply(200,{'ok':True})
         raise Problem(404,'Ruta desconocida')
 
@@ -437,27 +461,87 @@ class Handler(BaseHTTPRequestHandler):
 
     def login(self):
         self.origin(); data=self.json_body()
-        username=str(data.get('username',''))[:100]; password=str(data.get('password',''))[:1024]
-        now=time.time(); key=self.client_address[0]
-        with self.server.attempt_lock:
-            attempts=self.server.attempts[key]
-            while attempts and attempts[0]<now-300: attempts.popleft()
-            if len(attempts)>=15: raise Problem(429,'Demasiados intentos. Espere cinco minutos.')
-            attempts.append(now)
+        username=data.get('username',''); password=data.get('password','')
+        if not isinstance(username,str) or len(username)>100 or not access.password_input(password): raise Problem(401,'Usuario o contraseña incorrectos')
+        now=time.time()
+        self.throttle('login',15,300)
         with self.server.store.connect() as db:
             account=db.execute('SELECT * FROM users WHERE name=?',(username,)).fetchone()
             calculated=password_hash(password,account['salt'] if account else '00'*16)
-            if not account or not secrets.compare_digest(calculated,account['hash']): raise Problem(401,'Usuario o contraseÃ±a incorrectos')
+            if not account or not account['active'] or (account['role']!='admin' and not access.modules(account)) or not secrets.compare_digest(calculated,account['hash']): raise Problem(401,'Usuario o contraseÃ±a incorrectos')
             token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(32);age=8*3600
             db.execute('DELETE FROM sessions WHERE expires<?',(now,))
             db.execute('INSERT INTO sessions VALUES(?,?,?,?)',(hashlib.sha256(token.encode()).hexdigest(),username,csrf,now+age))
-        return self.reply(200,{'username':username,'role':account['role'],'csrf':csrf},headers={'Set-Cookie':self.cookie(token,age)})
+        return self.reply(200,dict(access.info(account),csrf=csrf),headers={'Set-Cookie':self.cookie(token,age)})
+
+    def throttle(self,scope,limit=60,seconds=300):
+        now=time.time(); key=(scope,self.client_address[0])
+        with self.server.attempt_lock:
+            attempts=self.server.attempts[key]
+            while attempts and attempts[0]<now-seconds: attempts.popleft()
+            if len(attempts)>=limit: raise Problem(429,'Demasiados intentos. Espere antes de reintentar.')
+            attempts.append(now)
+
+    def reauthenticate(self,user,password):
+        if not self.server.secure_cookie and self.client_address[0] not in ('127.0.0.1','::1'):
+            raise Problem(403,'Configure HTTPS para las operaciones sensibles fuera de localhost')
+        self.throttle('reauth:'+user['name'],8)
+        if not access.password_input(password): raise Problem(403,'No se pudo verificar la identidad')
+        if not secrets.compare_digest(password_hash(password,user['salt']),user['hash']):
+            raise Problem(403,'No se pudo verificar la identidad')
+        with self.server.attempt_lock: self.server.attempts.pop(('reauth:'+user['name'],self.client_address[0]),None)
+
+    def users(self,path,user):
+        if self.command in ('GET','HEAD') and path=='/api/users':
+            with self.server.store.connect() as db:
+                accounts=[access.info(r) for r in db.execute('SELECT * FROM users ORDER BY name')]
+            return self.reply(200,{'users':accounts,'modules':list(MODULES)})
+        if self.command!='POST': raise Problem(405,'Método no admitido')
+        data=self.json_body()
+        self.throttle('users:'+user['name'],50)
+        self.reauthenticate(user,data.get('current'))
+        creating=path=='/api/users'
+        name=data.get('name') if creating else path.removeprefix('/api/users/')
+        if not isinstance(name,str) or not re.fullmatch('[a-z][a-z0-9_.-]{2,63}',name): raise Problem(422,'Usuario inválido (3–64 caracteres)')
+        if set(data)-{'name','modules','password','current','active','role'}: raise Problem(422,'Campo no admitido')
+        with self.server.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            target=db.execute('SELECT * FROM users WHERE name=?',(name,)).fetchone()
+            if creating and target: raise Problem(422,'No se puede crear esta cuenta')
+            if not creating and not target: raise Problem(422,'No se puede actualizar esta cuenta')
+            role=data.get('role','user' if creating else target['role'])
+            if role not in ('user','admin','cctv'): raise Problem(422,'Rol inválido')
+            active=data.get('active',True if creating else bool(target['active']))
+            if type(active) is not bool: raise Problem(422,'Estado inválido')
+            granted=data.get('modules',[] if creating else json.loads(target['modules']))
+            if not isinstance(granted,list) or any(not isinstance(m,str) or m not in MODULES for m in granted) or len(granted)!=len(set(granted)):
+                raise Problem(422,'Módulos inválidos')
+            granted=[m for m in MODULES if m in granted]
+            if name==user['name'] and (not active or role!='admin' or 'modules' in data):
+                raise Problem(422,'No puede desactivar ni limitar su propia cuenta administrativa')
+            if name=='fmenini' and (not active or role!='admin'): raise Problem(422,'La cuenta principal debe conservar acceso administrador')
+            if target and target['role']=='admin' and (role!='admin' or not active):
+                if db.execute("SELECT count(*) FROM users WHERE role='admin' AND active=1").fetchone()[0]<=1:
+                    raise Problem(422,'Debe conservar al menos un administrador activo')
+            password=data.get('password')
+            if creating or password is not None:
+                if not access.password_valid(password): raise Problem(422,'Use al menos 15 caracteres y como máximo 1024 bytes UTF-8')
+                salt=secrets.token_hex(16); hashed=password_hash(password,salt)
+            if creating:
+                db.execute('INSERT INTO users(name,role,salt,hash,active,modules,must_change) VALUES(?,?,?,?,?,?,1)',(name,role,salt,hashed,int(active),json.dumps(granted)))
+            else:
+                db.execute('UPDATE users SET role=?,active=?,modules=? WHERE name=?',(role,int(active),json.dumps(granted),name))
+                if password is not None: db.execute('UPDATE users SET salt=?,hash=?,must_change=1 WHERE name=?',(salt,hashed,name))
+            db.execute('DELETE FROM sessions WHERE username=?',(name,))
+            result=access.info(db.execute('SELECT * FROM users WHERE name=?',(name,)).fetchone())
+        return self.reply(200,{'ok':True,'user':result})
 
     def plans(self,path,username,admin=False):
         store=self.server.store
         owner=parse_qs(urlsplit(self.path).query).get("owner",[username])[0]
         if owner!=username and not admin: raise Problem(403,"No puede acceder a planos de otro usuario")
-        if owner not in ("fmenini","smenini"): raise Problem(422,"Propietario desconocido")
+        with store.connect() as db:
+            if not db.execute('SELECT 1 FROM users WHERE name=?',(owner,)).fetchone(): raise Problem(422,'Propietario desconocido')
         if path=='/api/plans':
             if self.command not in ('GET','HEAD'): raise Problem(405,'MÃ©todo no admitido')
             with store.connect() as db:
@@ -513,7 +597,7 @@ def main():
         restore_backup(args.argument,args.data_dir);print('Restaurado; sesiones revocadas.');return
     store=Store(args.data_dir,bootstrap)
     if args.command=='password':
-        if args.argument not in ('fmenini','smenini'): parser.error('Indique usuario')
+        if not args.argument: parser.error('Indique usuario')
         password=getpass.getpass('Nueva contraseÃ±a (12+ caracteres): ')
         if password!=getpass.getpass('Repetir contraseÃ±a: '): parser.error('Las contraseÃ±as no coinciden')
         store.password(args.argument,password);print('ContraseÃ±a actualizada y sesiones revocadas.');return
