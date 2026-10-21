@@ -1,0 +1,28 @@
+{
+  "suppliers": [
+    {
+      "id": "ofimax",
+      "website": "https://www.ofimax.net/",
+      "brands": "Tiandy, Mercusys, Econi, Nexxt, Intelbras",
+      "notes": "Importador/Reseller. Precios de lista sin IVA (planilla del cliente).",
+      "name": "Ofimax",
+      "updatedAt": "2026-10-21T00:00:00.000Z"
+    },
+    {
+      "id": "electrocom",
+      "website": "https://www.electrocom.com.uy/",
+      "brands": "TP-Link, Hikvision",
+      "notes": "Importador/Reseller. Precios de lista sin IVA (planilla del cliente).",
+      "name": "Electrocom",
+      "updatedAt": "2026-10-21T00:00:00.000Z"
+    },
+    {
+      "id": "fivisa",
+      "website": "https://www.fivisa.com.uy/",
+      "brands": "Molveno, TA",
+      "notes": "Importador/Reseller. Precios de lista sin IVA (planilla del cliente).",
+      "name": "Fivisa",
+      "updatedAt": "2026-10-21T00:00:00.000Z"
+    }
+  ]
+}
