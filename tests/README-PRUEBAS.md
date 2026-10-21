@@ -34,3 +34,9 @@ python tests/qa_proveedores.py
 - `qa_proveedores.py` prueba gestión de proveedores y el servidor opcional, incluyendo protección HTTP de directorios privados.
 
 **Limitación de pruebas:** las políticas del navegador de este entorno bloquean navegar a `127.0.0.1`. Las pruebas de UI inyectan los archivos JS/HTML; la API del servidor se prueba por separado. La apertura BAT y el guardado completo desde Windows deben comprobarse en el equipo del usuario.
+
+### Dibujo en HTTP de red local
+- `node tests/qa_drawing.cjs`: 22 gestos reales (casa/terreno: arrastre, dos clics, Enter, cierre y doble clic; pared: dos vértices), standalone y bundle integrado. Sin polyfill de `crypto.randomUUID` en el fixture.
+- `node tests/qa_drawing_hosts.cjs`: 12 gestos sobre hosts reales CCTV y presupuesto, iframe no seguro, persistencia aislada y UUID v4 válido. No conecta con datos reales; el host CCTV usa una API en memoria.
+- `uuid.js` conserva `crypto.randomUUID` cuando existe y usa bytes de `crypto.getRandomValues` en HTTP LAN. Esto corrige las identidades del plano, NO convierte HTTP en transporte seguro; para proteger sesiones y datos use HTTPS.
+- Después de cambiar fuentes: `node tests/build-planner.cjs` y `node tests/build-planner.cjs --check`.

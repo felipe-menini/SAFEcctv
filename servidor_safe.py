@@ -274,7 +274,7 @@ def restore_backup(archive_path, directory):
 
 PUBLIC={'/password':'password.html','/password.js':'password.js','/login':'login.html','/login.js':'login.js','/auth.css':'auth.css'}
 ADMIN_FILES={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/technical.js':'technical.js','/pdf.js':'pdf.js','/planner-integration.js':'planner-integration.js','/styles.css':'styles.css','/dark-theme.css':'dark-theme.css','/planner-integration.css':'planner-integration.css'}
-SHARED={'/access.js':'access.js','/cctv':'cctv.html','/cctv.js':'cctv.js','/safe-server.js':'safe-server.js','/theme.js':'theme.js','/planner-document.js':'planner-document.js','/auth.css':'auth.css'}
+SHARED={'/uuid.js':'uuid.js','/access.js':'access.js','/cctv':'cctv.html','/cctv.js':'cctv.js','/safe-server.js':'safe-server.js','/theme.js':'theme.js','/planner-document.js':'planner-document.js','/auth.css':'auth.css'}
 # Only immutable presentation assets, never directory listings or arbitrary source files.
 for file in (ROOT/'assets').glob('*'):
     if file.is_file() and file.suffix.lower() in ('.png','.jpg','.jpeg','.webp','.svg','.ico','.js'):

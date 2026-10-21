@@ -9,6 +9,6 @@ function flush(){clearTimeout(timer);chain=chain.catch(()=>{}).then(drain);retur
 window.SAFE_APP={get quote(){return quote},state:{settings:{companyName:'SAFE Security'}},showView(){message('Este usuario tiene acceso al diseño CCTV únicamente.')}};
 window.SafePlanner={ready(bridge,id){api=bridge;api.setTheme(window.SAFE_THEME.current)},accept(plan,id){if(id!==quote.id)throw Error('El plano activo cambió');quote.cctvPlan=plan;pending={id,owner,plan:JSON.parse(JSON.stringify(plan))};message('Cambios pendientes…');clearTimeout(timer);timer=setTimeout(()=>flush().catch(()=>{}),450)},toggleExpanded(){if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()}};
 window.SafeCctv={flush,exportPending(){if(!quote.cctvPlan)return;const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(quote.cctvPlan,null,2)],{type:'application/json'}));a.href=url;a.download='SAFE-plano-pendiente.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}};
-$('newPlan').onclick=async()=>{try{await flush();owner=S.boot.username;revision=0;blocked=false;mount(null,'plan-'+crypto.randomUUID());}catch(e){message(e.message)}};
+$('newPlan').onclick=async()=>{try{await flush();owner=S.boot.username;revision=0;blocked=false;mount(null,'plan-'+SAFE_UUID());}catch(e){message(e.message)}};
 window.addEventListener('beforeunload',e=>{if(pending||saving){e.preventDefault();e.returnValue=''}});document.addEventListener('safe-theme-change',e=>api?.setTheme(e.detail));list().catch(e=>message(e.message));
 })();
